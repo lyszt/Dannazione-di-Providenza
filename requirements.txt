@@ -33,7 +33,7 @@ pynput
 # Language Detection
 langdetect
 pycld2
-
+pygetwindow
 # Configuration & Utilities
 pyyaml
 python-dotenv

@@ -34,6 +34,7 @@ class ScreenCapture:
                 Logger.warning(f"Failed to initialize mss: {e}")
                 self.sct = None
 
+
     def capture_screen(self, region: Optional[Tuple[int, int, int, int]] = None) -> Optional[np.ndarray]:
         """
         Universal capture chain: MSS -> PyAutoGUI -> Native Wayland CLI
