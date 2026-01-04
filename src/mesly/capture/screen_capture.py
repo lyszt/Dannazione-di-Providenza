@@ -1,28 +1,30 @@
 """
-Screen capture functionality
+Screen capture functionality - Universal Linux Support
 """
-
 import numpy as np
+import subprocess
+import os
 from PIL import Image
 from typing import Optional, Tuple
 from ..utils import Logger
 
+# Check for libraries
 try:
     import mss
+
     HAS_MSS = True
 except ImportError:
     HAS_MSS = False
 
 try:
     import pyautogui
+
     HAS_PYAUTOGUI = True
 except ImportError:
     HAS_PYAUTOGUI = False
 
 
 class ScreenCapture:
-    """Handles screen capture operations"""
-
     def __init__(self):
         self.sct = None
         if HAS_MSS:
@@ -34,91 +36,98 @@ class ScreenCapture:
 
     def capture_screen(self, region: Optional[Tuple[int, int, int, int]] = None) -> Optional[np.ndarray]:
         """
-        Capture screenshot
-
-        Args:
-            region: Optional (x, y, width, height) tuple for specific region
-
-        Returns:
-            Screenshot as numpy array (RGB) or None if failed
+        Universal capture chain: MSS -> PyAutoGUI -> Native Wayland CLI
         """
-        # Try pyautogui first (more reliable on Linux)
-        if HAS_PYAUTOGUI:
-            try:
-                if region:
-                    x, y, width, height = region
-                    screenshot = pyautogui.screenshot(region=(x, y, width, height))
-                else:
-                    screenshot = pyautogui.screenshot()
 
-                img_array = np.array(screenshot)
-                Logger.debug(f"Screenshot captured with pyautogui: {img_array.shape}")
-                return img_array
-
-            except Exception as e:
-                Logger.warning(f"pyautogui capture failed: {e}, trying mss fallback")
-
-        # Fallback to mss
+        # 1. Try MSS
         if self.sct:
             try:
                 if region:
-                    x, y, width, height = region
-                    monitor = {
-                        "top": y,
-                        "left": x,
-                        "width": width,
-                        "height": height
-                    }
+                    monitor = {"top": region[1], "left": region[0], "width": region[2], "height": region[3]}
                 else:
-                    # Capture primary monitor
                     monitor = self.sct.monitors[1]
 
-                # Capture screenshot
-                screenshot = self.sct.grab(monitor)
+                sct_img = self.sct.grab(monitor)
+                img = Image.frombytes("RGB", sct_img.size, sct_img.rgb)
+                return np.array(img)
+            except Exception:
+                pass  #
 
-                # Convert to PIL Image then to numpy array
-                img = Image.frombytes("RGB", screenshot.size, screenshot.rgb)
-                img_array = np.array(img)
+        if HAS_PYAUTOGUI:
+            try:
+                if region:
+                    screenshot = pyautogui.screenshot(region=region)
+                else:
+                    screenshot = pyautogui.screenshot()
+                return np.array(screenshot)
+            except Exception:
+                pass
 
-                Logger.debug(f"Screenshot captured with mss: {img_array.shape}")
+        return self._capture_wayland_cli(region)
+
+    def _capture_wayland_cli(self, region: Optional[Tuple[int, int, int, int]]) -> Optional[np.ndarray]:
+        """
+        Detects the Desktop Environment and uses the native CLI tool.
+        Captures full screen and crops in memory to avoid interactive prompts.
+        """
+        desktop = os.environ.get("XDG_CURRENT_DESKTOP", "").upper()
+        temp_path = "/tmp/mesly_universal_capture.png"
+
+        # Define the command based on DE
+        cmd = []
+        if "KDE" in desktop:
+            # Spectacle: -b (background), -n (non-notify), -o (output)
+            cmd = ["spectacle", "-b", "-n", "-o", temp_path]
+        elif "GNOME" in desktop:
+            # Gnome-screenshot: -f (file)
+            cmd = ["gnome-screenshot", "-f", temp_path]
+        elif "SWAY" in desktop or "HYPRLAND" in desktop:
+            # Grim: Standard for wlroots
+            cmd = ["grim", temp_path]
+        else:
+            # Fallback for generic/unknown Wayland (try grim as it's common)
+            Logger.warning(f"Unknown Desktop '{desktop}', trying grim...")
+            cmd = ["grim", temp_path]
+
+        try:
+            # Cleanup old file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+            # Run the command silently
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+            if os.path.exists(temp_path):
+                with Image.open(temp_path) as img:
+                    img = img.convert("RGB")
+
+                    # Handle cropping in Python (Bypasses UI selectors)
+                    if region:
+                        x, y, w, h = region
+                        img = img.crop((x, y, x + w, y + h))
+
+                    img_array = np.array(img)
+
+                # Cleanup
+                os.remove(temp_path)
+                Logger.debug(f"Captured with Native CLI ({cmd[0]}): {img_array.shape}")
                 return img_array
 
-            except Exception as e:
-                Logger.exception(f"mss capture also failed: {e}")
-                return None
+        except subprocess.CalledProcessError:
+            Logger.error(f"Native capture tool '{cmd[0]}' failed. Is it installed?")
+        except Exception as e:
+            Logger.error(f"Unexpected capture error: {e}")
 
-        Logger.error("No screenshot library available")
         return None
 
     def capture_and_save(self, filepath: str, region: Optional[Tuple[int, int, int, int]] = None) -> bool:
-        """
-        Capture screenshot and save to file
-
-        Args:
-            filepath: Path to save screenshot
-            region: Optional (x, y, width, height) tuple
-
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            img_array = self.capture_screen(region)
-            if img_array is None:
-                return False
-
-            # Convert to PIL Image and save
-            img = Image.fromarray(img_array)
-            img.save(filepath)
-
-            Logger.info(f"Screenshot saved to: {filepath}")
+        img_array = self.capture_screen(region)
+        if img_array is not None:
+            Image.fromarray(img_array).save(filepath)
             return True
-
-        except Exception as e:
-            Logger.exception(f"Error saving screenshot: {e}")
-            return False
+        return False
 
     def get_monitor_info(self):
-        """Get information about available monitors"""
-        monitors = self.sct.monitors
-        Logger.info(f"Available monitors: {len(monitors) - 1}")  # -1 because monitors[0] is all monitors combined
-        return monitors
+        if self.sct:
+            return self.sct.monitors
+        return []
