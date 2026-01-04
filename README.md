@@ -34,7 +34,7 @@ python main.py
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.13+
 - Linux (X11)
 - See `requirements.txt` for Python dependencies
 
