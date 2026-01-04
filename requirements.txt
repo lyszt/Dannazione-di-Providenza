@@ -1,0 +1,46 @@
+# OCR Libraries
+pytesseract
+easyocr
+paddleocr
+
+# AI/LLM Providers
+google-genai
+openai
+
+# Image Processing & Computer Vision
+opencv-python
+Pillow
+numpy
+
+# Screen Capture
+mss
+pyautogui
+
+# Screen Overlay & GUI
+PyQt5
+PyQt5-Qt5
+PyQt5-sip
+
+# Translation Services
+deep-translator
+googletrans
+google-cloud-translate
+
+# Language Detection
+langdetect
+pycld2
+
+# Configuration & Utilities
+pyyaml
+python-dotenv
+requests
+
+# Database (for caching translations/vocabulary)
+sqlalchemy
+
+# Logging & Debugging
+loguru
+
+# Testing
+pytest
+pytest-cov

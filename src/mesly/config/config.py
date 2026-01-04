@@ -2,7 +2,7 @@
 Configuration management for Mesly
 """
 
-import json
+import yaml
 from pathlib import Path
 from typing import Optional, Dict
 
@@ -22,12 +22,12 @@ class ConfigTemplate:
 
     _instances: Dict[str, 'ConfigTemplate'] = {}
 
-    def __init__(self, filepath: str = "config/config.json"):
+    def __init__(self, filepath: str = "config/config.yaml"):
         """
         Initialize configuration, loading from file or creating default
 
         Args:
-            filepath: Path to config file (default: config/config.json)
+            filepath: Path to config file (default: config/config.yaml)
         """
         self.filepath = Path(filepath)
 
@@ -51,7 +51,8 @@ class ConfigTemplate:
 
     def _load(self) -> None:
         """Load configuration from file"""
-        data = json.loads(self.filepath.read_text())
+        with open(self.filepath, 'r') as f:
+            data = yaml.safe_load(f)
 
         # Reconstruct AI config with clients list
         ai_data = data.get("ai", {})
@@ -85,12 +86,12 @@ class ConfigTemplate:
             }
         }
 
-        json_str = json.dumps(config_dict, indent=2)
-        self.filepath.write_text(json_str)
+        with open(self.filepath, 'w') as f:
+            yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
         print(f"Configuration saved to {self.filepath}")
 
-    def to_json(self) -> str:
-        """Convert config to JSON string"""
+    def to_yaml(self) -> str:
+        """Convert config to YAML string"""
         config_dict = {
             "ocr": self.ocr.__dict__,
             "translation": self.translation.__dict__,
@@ -103,16 +104,16 @@ class ConfigTemplate:
                 "clients": [client.__dict__ for client in self.ai.clients]
             }
         }
-        return json.dumps(config_dict, indent=2)
+        return yaml.dump(config_dict, default_flow_style=False, sort_keys=False)
 
     @classmethod
-    def get_config(cls, filepath: str = "config/config.json") -> 'ConfigTemplate':
+    def get_config(cls, filepath: str = "config/config.yaml") -> 'ConfigTemplate':
         """
         Get configuration instance - automatically loads or creates config file
         Uses singleton pattern to ensure config is only loaded once per filepath
 
         Args:
-            filepath: Path to config file (default: config/config.json)
+            filepath: Path to config file (default: config/config.yaml)
 
         Returns:
             Ready-to-use ConfigTemplate instance

@@ -1,0 +1,39 @@
+# Mesly Configuration Example
+# Copy this file to config.yaml and adjust settings
+
+# OCR Settings
+ocr:
+  engine: "easyocr"  # Options: easyocr, pytesseract, paddleocr
+  languages:
+    - "ja"  # Japanese
+    - "ko"  # Korean
+    - "zh"  # Chinese
+  confidence_threshold: 0.5
+
+# Translation Settings
+translation:
+  service: "google"  # Options: google, deepl
+  source_language: "auto"
+  target_language: "en"
+  cache_enabled: true
+
+# Screen Capture Settings
+capture:
+  fps: 1  # Captures per second
+  region:  # Leave null for full screen
+    x: null
+    y: null
+    width: null
+    height: null
+
+# Overlay Settings
+overlay:
+  enabled: true
+  font_size: 14
+  background_opacity: 0.8
+  position: "bottom"  # Options: top, bottom, custom
+
+# Performance
+performance:
+  use_gpu: false
+  max_threads: 4
