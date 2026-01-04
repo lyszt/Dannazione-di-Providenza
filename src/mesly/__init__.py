@@ -13,7 +13,12 @@ def _initialize():
     Logger.info("Initializing Mesly...")
     ModelSetup.setup_local_models()
 
+def shutdown():
+    """Shutdown Mesly and cleanup resources"""
+    Logger.info("Shutting down Mesly...")
+    ModelSetup.stop_ollama_server()
+
 # Auto-run on import
 _initialize()
 
-__all__ = ["Logger", "ModelSetup"]
+__all__ = ["Logger", "ModelSetup", "shutdown"]
