@@ -54,7 +54,7 @@ class AIConfig:
             ]
         if not self.local_clients:
             self.local_clients = [
-                LocalLLMClient(provider="ollama", model="llama2", enabled=False),
+                LocalLLMClient(provider="ollama", model="phi3:mini", enabled=True),
                 LocalLLMClient(provider="llamacpp", model="llama2", enabled=False)
             ]
 

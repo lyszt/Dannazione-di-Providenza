@@ -45,6 +45,16 @@ config/config.yaml
 data/*
 !data/.gitkeep
 
+# Models
+models/
+*.gguf
+*.ggml
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.onnx
+
 # OS
 .DS_Store
 Thumbs.db
