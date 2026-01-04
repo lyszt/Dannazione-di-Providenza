@@ -44,6 +44,9 @@ config/config.yaml
 # Data
 data/*
 !data/.gitkeep
+!data/screenshots/
+data/screenshots/*
+!data/screenshots/.gitkeep
 
 # Models
 models/

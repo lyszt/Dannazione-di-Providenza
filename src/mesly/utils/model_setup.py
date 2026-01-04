@@ -44,7 +44,8 @@ class ModelSetup:
                 timeout=2
             )
             return result.returncode == 0
-        except:
+        except Exception as e:
+            Logger.error(f"Error checking if Ollama server is running: {e}")
             return False
 
     @classmethod

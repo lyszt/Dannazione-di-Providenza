@@ -29,7 +29,7 @@ PyQt5-sip
 deep-translator
 googletrans
 google-cloud-translate
-
+pynput
 # Language Detection
 langdetect
 pycld2
