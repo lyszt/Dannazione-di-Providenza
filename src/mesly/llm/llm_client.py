@@ -15,6 +15,7 @@ except ImportError:
     openai = None
 
 from ..config import ConfigTemplate, AIConfig, AIClient
+from ..utils import Logger
 from .exceptions import (
     AIConfigurationError,
     AIAPIKeyMissingError,
@@ -45,8 +46,9 @@ class LLMClientManager:
 
         if self.config and self.config.enabled:
             self._initialize_client()
+            Logger.info(f"{provider.capitalize()} client initialized successfully")
         else:
-            print(f"Warning: {provider} client not found or not enabled in config")
+            Logger.warning(f"{provider} client not found or not enabled in config")
 
     def _initialize_client(self):
         """Initialize the client based on provider"""
@@ -98,16 +100,17 @@ class LLMClientManager:
             Generated text or None if failed
         """
         if not self.is_available():
-            print(f"{self.provider} client not available")
+            Logger.error(f"{self.provider} client not available")
             return None
 
         try:
+            Logger.debug(f"Generating with {self.provider}: {prompt[:50]}...")
             if self.provider == "gemini":
                 return self._generate_gemini(prompt)
             elif self.provider == "openai":
                 return self._generate_openai(prompt)
         except Exception as e:
-            print(f"Error generating with {self.provider}: {e}")
+            Logger.exception(f"Error generating with {self.provider}: {e}")
             return None
 
     def _generate_gemini(self, prompt: str) -> Optional[str]:

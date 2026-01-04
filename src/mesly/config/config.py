@@ -15,6 +15,7 @@ from .models import (
     AIConfig,
     AIClient
 )
+from ..utils import Logger
 
 
 class ConfigTemplate:
@@ -40,14 +41,14 @@ class ConfigTemplate:
 
         # Load from file if exists, otherwise save defaults
         if self.filepath.exists():
-            print(f"Loading configuration from {self.filepath}")
+            Logger.info(f"Loading configuration from {self.filepath}")
             self._load()
-            print(f"Configuration loaded successfully")
+            Logger.info(f"Configuration loaded successfully")
         else:
-            print(f"Configuration file not found at {self.filepath}")
-            print(f"Creating default configuration...")
+            Logger.warning(f"Configuration file not found at {self.filepath}")
+            Logger.info(f"Creating default configuration...")
             self.save()
-            print(f"Default configuration saved to {self.filepath}")
+            Logger.info(f"Default configuration saved to {self.filepath}")
 
     def _load(self) -> None:
         """Load configuration from file"""
@@ -88,7 +89,7 @@ class ConfigTemplate:
 
         with open(self.filepath, 'w') as f:
             yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
-        print(f"Configuration saved to {self.filepath}")
+        Logger.info(f"Configuration saved to {self.filepath}")
 
     def to_yaml(self) -> str:
         """Convert config to YAML string"""
@@ -123,7 +124,7 @@ class ConfigTemplate:
 
         # Return existing instance if already loaded
         if normalized_path in cls._instances:
-            print(f"Using cached configuration from {filepath}")
+            Logger.debug(f"Using cached configuration from {filepath}")
             return cls._instances[normalized_path]
 
         # Create new instance and cache it
