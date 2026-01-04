@@ -1,16 +1,32 @@
-# This is a sample Python script.
+#!/usr/bin/env python3
+"""
+Mesly - OCR-based language learning tool for gaming
 
-# Press Ctrl+F5 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+Main entry point for the application.
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+from src.mesly import __version__
+from src.mesly.app import MeslyApp
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press F9 to toggle the breakpoint.
+def main():
+    """Main application entry point"""
+    print(f"Mesly v{__version__}")
+    print("OCR Language Learning Tool")
+
+    # TODO: Initialize application components
+    # - Screen capture
+    # - OCR engine
+    # - Translation service
+    # - Overlay window
+
+    print("Application not yet implemented")
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+if __name__ == "__main__":
+    mesly_app = MeslyApp()
