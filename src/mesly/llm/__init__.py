@@ -3,6 +3,7 @@ LLM client management package
 """
 
 from .llm_client import LLMClientManager
+from .local_llm_client import LocalLLMClientManager
 from .exceptions import (
     AIConfigurationError,
     AIAPIKeyMissingError,
@@ -12,6 +13,7 @@ from .exceptions import (
 
 __all__ = [
     "LLMClientManager",
+    "LocalLLMClientManager",
     "AIConfigurationError",
     "AIAPIKeyMissingError",
     "AIProviderNotInstalledError",
