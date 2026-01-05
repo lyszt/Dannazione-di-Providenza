@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from .config.config import ConfigTemplate
+from .config.models.ai_config import LocalLLMClient
 from .utils import Logger, HotkeyManager
 from .capture import ScreenCapture
 from .window.main_window import MainWindow
@@ -38,7 +39,8 @@ class MeslyApp:
         app.setApplicationName("Mesly")
         app.setStyle("Fusion")
 
-        self.window = MainWindow()
+        local_llm_client = LocalLLMClient("ollama")
+        self.window = MainWindow(local_llm_client)
         self.window.show()
 
         # Start hotkey listener

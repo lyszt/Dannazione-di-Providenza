@@ -1,0 +1,2 @@
+- Don't create MD files to explain stuff
+- Never import anything inline, every import should be at the top

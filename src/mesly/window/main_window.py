@@ -1,85 +1,101 @@
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
-                             QPushButton, QComboBox, QLabel, QHBoxLayout)
+                             QPushButton, QLabel)
 from PyQt5.QtCore import Qt
-from ..capture.window_selector import WindowSelector
+from PyQt5.QtGui import QImage, QPixmap
+from PIL import Image
+
 from ..capture.stream_thread import ScreenShareThread
 from ..utils import Logger
+from ..llm.local_llm_client import LocalLLMClient
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, local_llm_client: LocalLLMClient):
         super().__init__()
-        self.setWindowTitle("Mesly")
-        self.resize(400, 300)
+        self.setWindowTitle("Mesly - Fullscreen OCR")
+        self.resize(500, 600)
 
         # Tools
-        self.window_selector = WindowSelector()
         self.stream_thread = None
+        self.local_llm_client = local_llm_client
 
         # UI Setup
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
 
-        # 1. Window Selection Row
-        sel_layout = QHBoxLayout()
-        self.combo_windows = QComboBox()
-        self.btn_refresh = QPushButton("Refresh")
-        self.btn_refresh.clicked.connect(self.refresh_window_list)
+        # Title
+        title_label = QLabel("Mesly: Live AI Language Tutor")
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet("font-size: 16px; font-weight: bold; padding: 10px;")
+        layout.addWidget(title_label)
 
-        sel_layout.addWidget(QLabel("Target:"))
-        sel_layout.addWidget(self.combo_windows, 1)  # Stretch factor 1
-        sel_layout.addWidget(self.btn_refresh)
-        layout.addLayout(sel_layout)
-
-        # 2. Controls
-        self.btn_toggle_share = QPushButton("Start Live Sharing")
+        # Start/Stop Button
+        self.btn_toggle_share = QPushButton("Start Screenshare")
         self.btn_toggle_share.setCheckable(True)
         self.btn_toggle_share.clicked.connect(self.toggle_sharing)
+        self.btn_toggle_share.setStyleSheet("padding: 10px; font-size: 14px;")
         layout.addWidget(self.btn_toggle_share)
 
-        # 3. Preview/Status Label
-        self.lbl_status = QLabel("Ready")
+        # Preview Area
+        self.lbl_preview = QLabel("Screen Preview")
+        self.lbl_preview.setAlignment(Qt.AlignCenter)
+        self.lbl_preview.setStyleSheet("border: 2px dashed #555; background: #222; color: #888;")
+        self.lbl_preview.setMinimumSize(400, 300)
+        self.lbl_preview.setScaledContents(True)
+        layout.addWidget(self.lbl_preview)
+
+        # Status Label
+        self.lbl_status = QLabel("Ready to learn? Mesly will watch your screen and tutor you while you try learning a language.")
         self.lbl_status.setAlignment(Qt.AlignCenter)
+        self.lbl_status.setWordWrap(True)
         layout.addWidget(self.lbl_status)
-
-        # Initial Load
-        self.refresh_window_list()
-
-    def refresh_window_list(self):
-        self.combo_windows.clear()
-        self.combo_windows.addItem("Full Screen", None)  # Default option
-
-        windows = self.window_selector.get_window_list()
-        for title in windows:
-            self.combo_windows.addItem(title, title)
-
-        Logger.info(f"Found {len(windows)} windows")
 
     def toggle_sharing(self, checked):
         if checked:
-            target = self.combo_windows.currentData()  # Returns title or None
-            self.stream_thread = ScreenShareThread(target_window_title=target)
-            self.stream_thread.frame_captured.connect(self.handle_frame)
+            self.stream_thread = ScreenShareThread()
+            self.stream_thread.content_update.connect(self.handle_frame)
             self.stream_thread.start()
 
-            self.btn_toggle_share.setText("Stop Live Sharing")
-            self.combo_windows.setEnabled(False)  # Lock selection while running
-            self.lbl_status.setText(f"Sharing: {target if target else 'Full Screen'}")
+            self.btn_toggle_share.setText("Stop Fullscreen Capture")
+            self.lbl_status.setText("Capturing fullscreen...")
+            Logger.info("Started fullscreen capture")
         else:
-            # STOP
             if self.stream_thread:
                 self.stream_thread.stop()
                 self.stream_thread = None
 
-            self.btn_toggle_share.setText("Start Live Sharing")
-            self.combo_windows.setEnabled(True)
+            self.btn_toggle_share.setText("Start Fullscreen Capture")
             self.lbl_status.setText("Stopped")
+            Logger.info("Stopped fullscreen capture")
 
-    def handle_frame(self, pil_image):
-        # Visual feedback that it's working
-        timestamp = pil_image.size
-        self.lbl_status.setText(f"Live: Frame captured {timestamp}")
+    def pil2pixmap(self, image):
+        """Converts a PIL Image into a QPixmap for Qt display"""
+        if image.mode == "RGB":
+            r, g, b = image.split()
+            image = Image.merge("RGB", (b, g, r))
 
-        # TODO: Pass 'pil_image' to  AI/OCR function here
-        # self.ai_processor.process(pil_image)
+        im2 = image.convert("RGBA")
+        data = im2.tobytes("raw", "BGRA")
+        qim = QImage(data, image.size[0], image.size[1], QImage.Format_ARGB32)
+        pixmap = QPixmap.fromImage(qim)
+        return pixmap
+
+    def handle_frame(self, pil_image, extracted_text):
+        """
+        Receives the captured image and OCR text.
+        Updates UI preview and can send to AI.
+        """
+        pixmap = self.pil2pixmap(pil_image)
+        self.lbl_preview.setPixmap(pixmap)
+
+        # Update Status Text
+        if extracted_text:
+            short_text = extracted_text.replace('\n', ' ')[:60]
+            self.lbl_status.setText(f"OCR: {short_text}...")
+            Logger.info(f"Extracted Text: {extracted_text}")
+            # TODO: Send to LLM
+            # self.local_llm_client.send(extracted_text)
+        else:
+            self.lbl_status.setText("No text detected in current frame")
+
