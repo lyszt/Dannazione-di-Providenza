@@ -21,11 +21,14 @@ numpy
 mss
 pyautogui
 
+
 # Screen Overlay & GUI
 PyQt5
 PyQt5-Qt5
 PyQt5-sip
 easygui
+fastapi
+uvicorn
 
 # Text to speech
 gtts

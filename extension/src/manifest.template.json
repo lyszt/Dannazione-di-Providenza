@@ -1,0 +1,105 @@
+{
+  "manifest_version": 3,
+  "name": "Dannazione",
+  "version": "1.0.0",
+  "description": "An alive agent integrated with browser for real-time language assistance and intelligence",
+  "author": "Abensoft",
+
+  "action": {
+    "default_icon": "images/icon.png",
+    "default_popup": "popup.html",
+    "default_title": "Dannazione"
+  },
+
+  "icons": {
+    "16": "images/icon-16.png",
+    "48": "images/icon-48.png",
+    "128": "images/icon-128.png"
+  },
+
+  "permissions": [
+    "scripting",
+    "tabs",
+    "activeTab",
+    "storage",
+    "webRequest",
+    "notifications",
+    "contextMenus",
+    "clipboardWrite",
+    "clipboardRead"
+  ],
+
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "<all_urls>"
+  ],
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["agentBridge.js"],
+      "css": ["agentOverlay.css"],
+      "run_at": "document_end",
+      "all_frames": false
+    }
+  ],
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/*.js",
+        "assets/*.css",
+        "*.js",
+        "*.css",
+        "images/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+
+  "commands": {
+    "capture-screen": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Capture screen for OCR and translation"
+    },
+    "toggle-agent": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A",
+        "mac": "Command+Shift+A"
+      },
+      "description": "Toggle alive agent overlay"
+    },
+    "quick-translate": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+T",
+        "mac": "Command+Shift+T"
+      },
+      "description": "Quick translate selected text"
+    }
+  },
+
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "dannazione@abensoft.com",
+      "strict_min_version": "109.0"
+    }
+  }
+}

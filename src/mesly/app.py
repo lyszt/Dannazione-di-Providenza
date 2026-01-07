@@ -8,12 +8,12 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer
 
 from .config.config import ConfigTemplate
-from .config.models.ai_config import LocalLLMClient
 from .llm import LocalLLMClientManager, LLMClientManager
 from .utils import Logger, HotkeyManager
 from .capture import ScreenCapture
 from .window.main_window import MainWindow
 from .config.prompts import LanguageTutorPrompts
+from .server.server import Server
 
 __version__ = "0.1.0"
 
@@ -22,6 +22,32 @@ class HotkeySignals(QObject):
     """Qt signals for thread-safe hotkey handling"""
     screenshot_requested = pyqtSignal()
 
+def get_ai_client(config: ConfigTemplate):
+    ai_client = None
+    preferred_provider = config.ai.preferred_provider
+
+    if preferred_provider in ["gemini", "openai"]:
+        # Cloud AI providers
+        try:
+            ai_client = LLMClientManager(provider=preferred_provider, settings=config)
+            if ai_client.is_available():
+                Logger.info(f"{preferred_provider.capitalize()} client initialized successfully")
+            else:
+                Logger.warning(f"{preferred_provider} client not available, check config and API keys")
+        except Exception as e:
+            Logger.error(f"Failed to initialize {preferred_provider} client: {e}")
+
+    elif preferred_provider in ["ollama", "llamacpp"]:
+        # Local LLM providers
+        try:
+            ai_client = LocalLLMClientManager(provider=preferred_provider, settings=config)
+            if ai_client.is_available():
+                Logger.info(f"{preferred_provider.capitalize()} client initialized successfully")
+            else:
+                Logger.warning(f"{preferred_provider} client not available, check config")
+        except Exception as e:
+            Logger.error(f"Failed to initialize {preferred_provider} client: {e}")
+    return ai_client
 
 class MeslyApp:
     def __init__(self):
@@ -32,6 +58,8 @@ class MeslyApp:
         # Setup hotkeys
         self.hotkey_manager = HotkeyManager()
         self.screen_capture = ScreenCapture()
+
+
 
         # Signal handler for thread-safe screenshot
         self.signals = HotkeySignals()
@@ -44,35 +72,10 @@ class MeslyApp:
         app.setStyle("Fusion")
 
         # Initialize AI client based on preferred provider from config
-        preferred_provider = self.config.ai.preferred_provider
-        Logger.info(f"Initializing AI client with preferred provider: {preferred_provider}")
-
-        ai_client = None
-        if preferred_provider in ["gemini", "openai"]:
-            # Cloud AI providers
-            try:
-                ai_client = LLMClientManager(provider=preferred_provider, settings=self.config)
-                if ai_client.is_available():
-                    Logger.info(f"{preferred_provider.capitalize()} client initialized successfully")
-                else:
-                    Logger.warning(f"{preferred_provider} client not available, check config and API keys")
-            except Exception as e:
-                Logger.error(f"Failed to initialize {preferred_provider} client: {e}")
-
-        elif preferred_provider in ["ollama", "llamacpp"]:
-            # Local LLM providers
-            try:
-                ai_client = LocalLLMClientManager(provider=preferred_provider, settings=self.config)
-                if ai_client.is_available():
-                    Logger.info(f"{preferred_provider.capitalize()} client initialized successfully")
-                else:
-                    Logger.warning(f"{preferred_provider} client not available, check config")
-            except Exception as e:
-                Logger.error(f"Failed to initialize {preferred_provider} client: {e}")
+        ai_client = get_ai_client(self.config)
 
         if ai_client is None or not ai_client.is_available():
             Logger.error(f"No AI client available. Please check your config at config/config.yaml")
-            Logger.error(f"Preferred provider '{preferred_provider}' could not be initialized")
 
         self.window = MainWindow(ai_client)
         self.window.show()
@@ -80,6 +83,16 @@ class MeslyApp:
         # Start hotkey listeners
         self.hotkey_manager.start()
         Logger.info("Hotkey listener started - Ctrl+Alt+S to screenshot")
+
+        self.server = Server(
+            host="127.0.0.1",
+            port=8000,
+            ai_client=ai_client,
+            config=self.config,
+            screen_capture=self.screen_capture
+        )
+        self.server.start()
+        Logger.info("FastAPI server started on http://127.0.0.1:8000")
 
         sys.exit(app.exec())
 
