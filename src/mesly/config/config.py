@@ -60,9 +60,11 @@ class ConfigTemplate:
         ai_data = data.get("ai", {})
         clients_data = ai_data.get("clients", [])
         local_clients_data = ai_data.get("local_clients", [])
+        preferred_provider = ai_data.get("preferred_provider", "ollama")
         self.ai = AIConfig(
             clients=[AIClient(**client) for client in clients_data] if clients_data else [],
-            local_clients=[LocalLLMClient(**client) for client in local_clients_data] if local_clients_data else []
+            local_clients=[LocalLLMClient(**client) for client in local_clients_data] if local_clients_data else [],
+            preferred_provider=preferred_provider
         )
 
         self.ocr = OCRConfig(**data.get("ocr", {}))
@@ -87,7 +89,8 @@ class ConfigTemplate:
             "overlay": self.overlay.__dict__,
             "ai": {
                 "clients": [client.__dict__ for client in self.ai.clients],
-                "local_clients": [client.__dict__ for client in self.ai.local_clients]
+                "local_clients": [client.__dict__ for client in self.ai.local_clients],
+                "preferred_provider": self.ai.preferred_provider
             }
         }
 
@@ -107,7 +110,8 @@ class ConfigTemplate:
             "overlay": self.overlay.__dict__,
             "ai": {
                 "clients": [client.__dict__ for client in self.ai.clients],
-                "local_clients": [client.__dict__ for client in self.ai.local_clients]
+                "local_clients": [client.__dict__ for client in self.ai.local_clients],
+                "preferred_provider": self.ai.preferred_provider
             }
         }
         return yaml.dump(config_dict, default_flow_style=False, sort_keys=False)

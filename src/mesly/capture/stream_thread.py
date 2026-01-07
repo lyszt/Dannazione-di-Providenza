@@ -16,9 +16,9 @@ class ScreenShareThread(QThread):
     # Signal: (Image Object, Extracted Text String)
     content_update = pyqtSignal(object, str)
 
-    def __init__(self):
+    def __init__(self, interval=5.0):
         super().__init__()
-        self.interval = 2.0
+        self.interval = interval  # Configurable delay between captures
         self.running = True
         self.capture_tool = ScreenCapture()
         self.last_frame = None

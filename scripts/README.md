@@ -20,8 +20,10 @@ From the project root directory, run:
    - PyQt5
    - Tesseract OCR with language packs (English, Japanese)
    - Build tools (for compiling Python packages)
-3. **Installs Python dependencies** from requirements.txt
-4. **Installs Ollama** (if not already installed)
+3. **Installs Ollama** (if not already installed)
+
+**Note:** This script does NOT install Python dependencies from requirements.txt.
+Install those manually with your preferred method (pip, poetry, etc.) or bundle them when creating a binary.
 
 ### Supported Distributions
 

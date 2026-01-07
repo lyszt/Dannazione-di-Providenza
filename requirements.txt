@@ -5,6 +5,7 @@ paddleocr
 
 # AI/LLM Providers - Cloud
 google-genai
+google-cloud-texttospeech
 openai
 
 # AI/LLM Providers - Local
@@ -24,6 +25,10 @@ pyautogui
 PyQt5
 PyQt5-Qt5
 PyQt5-sip
+easygui
+
+# Text to speech
+gtts
 
 # Translation Services
 deep-translator

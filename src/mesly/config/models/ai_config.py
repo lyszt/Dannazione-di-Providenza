@@ -44,12 +44,13 @@ class AIConfig:
     """Main AI configuration - holds multiple clients"""
     clients: List[AIClient] = field(default_factory=list)
     local_clients: List[LocalLLMClient] = field(default_factory=list)
+    preferred_provider: Literal["gemini", "openai", "ollama", "llamacpp"] = "ollama"
 
     def __post_init__(self):
         """Initialize with default clients if empty"""
         if not self.clients:
             self.clients = [
-                AIClient(provider="gemini", model="gemini-2.0-flash-exp", enabled=False),
+                AIClient(provider="gemini", model="gemini-2.0-flash-lite", enabled=False),
                 AIClient(provider="openai", model="gpt-4o-mini", enabled=False)
             ]
         if not self.local_clients:
@@ -78,4 +79,12 @@ class AIConfig:
         for client in self.local_clients:
             if client.provider == provider:
                 return client
+        return None
+
+    def get_preferred_client(self) -> Optional[Union[AIClient, LocalLLMClient]]:
+        """Get the preferred AI client based on preferred_provider"""
+        if self.preferred_provider in ["gemini", "openai"]:
+            return self.get_client(self.preferred_provider)
+        elif self.preferred_provider in ["ollama", "llamacpp"]:
+            return self.get_local_client(self.preferred_provider)
         return None

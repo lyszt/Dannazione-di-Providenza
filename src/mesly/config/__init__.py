@@ -12,6 +12,7 @@ from .models import (
     AIConfig,
     AIClient
 )
+from .prompts import LanguageTutorPrompts, get_tutor_prompt
 
 __all__ = [
     "ConfigTemplate",
@@ -21,5 +22,7 @@ __all__ = [
     "CaptureRegion",
     "OverlayConfig",
     "AIConfig",
-    "AIClient"
+    "AIClient",
+    "LanguageTutorPrompts",
+    "get_tutor_prompt"
 ]

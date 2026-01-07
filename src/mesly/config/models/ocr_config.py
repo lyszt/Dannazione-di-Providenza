@@ -10,6 +10,6 @@ from typing import List
 class OCRConfig:
     """OCR engine configuration"""
     engine: str = "easyocr"  # easyocr, pytesseract, paddleocr
-    languages: List[str] = field(default_factory=lambda: ["ja", "en"])
+    languages: List[str] = field(default_factory=lambda: ["es", "fr", "it", "pt", "ro", "en"])
     confidence_threshold: float = 0.5
     use_gpu: bool = False

@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout()
 
-        self.status_label = QLabel("Ready. Press Ctrl+Shift+T to capture screenshot")
+        self.status_label = QLabel("Ready. Press Ctrl+Alt+S to capture screenshot")
         self.status_label.setAlignment(Qt.AlignCenter)
         self.status_label.setStyleSheet("font-size: 16px; padding: 20px;")
 
@@ -59,10 +59,10 @@ class MainWindow(QMainWindow):
         """Setup global hotkeys"""
         self.hotkey_manager = HotkeyManager()
 
-        # Register Ctrl+Shift+T
+        # Register Ctrl+Alt+S
         self.hotkey_manager.register(
-            '<ctrl>+<shift>+t',
-            lambda: self.comm.hotkey_triggered.emit("Ctrl+Shift+T")
+            '<ctrl>+<alt>+s',
+            lambda: self.comm.hotkey_triggered.emit("Ctrl+Alt+S")
         )
 
         # Start listening in background thread
@@ -81,9 +81,9 @@ class MainWindow(QMainWindow):
 
         # Capture and save
         if self.screen_capture.capture_and_save(filepath):
-            self.status_label.setText(f"Screenshot saved!\n\n{filepath}\n\nPress Ctrl+Shift+T to capture again")
+            self.status_label.setText(f"Screenshot saved!\n\n{filepath}\n\nPress Ctrl+Alt+S to capture again")
         else:
-            self.status_label.setText(f"Failed to capture screenshot\n\nPress Ctrl+Shift+T to try again")
+            self.status_label.setText(f"Failed to capture screenshot\n\nPress Ctrl+Alt+S to try again")
 
     def closeEvent(self, event):
         """Handle window close event"""
@@ -100,7 +100,7 @@ def main():
     window = MainWindow()
     window.show()
 
-    Logger.info("Application running. Press Ctrl+Shift+T to test hotkey.")
+    Logger.info("Application running. Press Ctrl+Alt+S to test hotkey.")
 
     sys.exit(app.exec_())
 

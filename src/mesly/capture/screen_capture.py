@@ -64,14 +64,13 @@ class ScreenCapture:
         def cmd_exists(cmd: str) -> bool:
             """Check if a command exists in PATH"""
             try:
-                subprocess.run(
-                    ["command", "-v", cmd],
-                    shell=True,
+                result = subprocess.run(
+                    ["which", cmd],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
-                    check=True
+                    check=False
                 )
-                return True
+                return result.returncode == 0
             except:
                 return False
 
@@ -93,12 +92,14 @@ class ScreenCapture:
         elif ("SWAY" in desktop or "HYPRLAND" in desktop) and has_grim:
             potential_cmds.append(["grim", temp_path])
 
+        # Universal fallbacks (try in order of preference, but skip gnome-screenshot if not on GNOME)
         if not potential_cmds:
             if has_spectacle:
                 potential_cmds.append(["spectacle", "-b", "-n", "-o", temp_path])
             if has_grim:
                 potential_cmds.append(["grim", temp_path])
-            if has_gnome:
+            # Only use gnome-screenshot as fallback if actually running GNOME
+            if has_gnome and "GNOME" in desktop:
                 potential_cmds.append(["gnome-screenshot", "-f", temp_path])
 
         if not potential_cmds:
@@ -111,11 +112,16 @@ class ScreenCapture:
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
 
+                # Suppress GTK/GNOME warnings by setting environment
+                env = os.environ.copy()
+                env['G_MESSAGES_DEBUG'] = ''
+
                 subprocess.run(
                     cmd,
                     check=True,
                     stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
+                    stderr=subprocess.DEVNULL,
+                    env=env
                 )
 
                 if os.path.exists(temp_path):

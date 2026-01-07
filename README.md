@@ -22,7 +22,7 @@ python main.py
 
 ### 3. Use Hotkeys
 
-- **Ctrl+Shift+T** - Capture screenshot
+- **Ctrl+Alt+S** - Capture screenshot
 
 ## Features
 
