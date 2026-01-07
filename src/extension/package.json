@@ -1,18 +1,24 @@
 {
-  "name": "extension",
+  "name": "dannazione",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "author": "lyszt",
+  "description": "Alive agent integrated browser extension for real-time language assistance",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "lit": "^3.3.1"
+    "lit": "^3.3.1",
+    "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {
-    "vite": "npm:rolldown-vite@7.2.5"
+    "vite": "npm:rolldown-vite@7.2.5",
+    "vite-plugin-static-copy": "^2.2.0",
+    "web-ext": "^8.4.0",
+    "terser": "^5.37.0"
   },
   "overrides": {
     "vite": "npm:rolldown-vite@7.2.5"

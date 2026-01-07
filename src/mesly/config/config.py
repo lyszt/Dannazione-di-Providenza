@@ -24,12 +24,12 @@ class ConfigTemplate:
 
     _instances: Dict[str, 'ConfigTemplate'] = {}
 
-    def __init__(self, filepath: str = "config/config.yaml"):
+    def __init__(self, filepath: str = "index/index.yaml"):
         """
         Initialize configuration, loading from file or creating default
 
         Args:
-            filepath: Path to config file (default: config/config.yaml)
+            filepath: Path to index file (default: index/index.yaml)
         """
         self.filepath = Path(filepath)
 
@@ -56,7 +56,7 @@ class ConfigTemplate:
         with open(self.filepath, 'r') as f:
             data = yaml.safe_load(f)
 
-        # Reconstruct AI config with clients list
+        # Reconstruct AI index with clients list
         ai_data = data.get("ai", {})
         clients_data = ai_data.get("clients", [])
         local_clients_data = ai_data.get("local_clients", [])
@@ -99,7 +99,7 @@ class ConfigTemplate:
         Logger.info(f"Configuration saved to {self.filepath}")
 
     def to_yaml(self) -> str:
-        """Convert config to YAML string"""
+        """Convert index to YAML string"""
         config_dict = {
             "ocr": self.ocr.__dict__,
             "translation": self.translation.__dict__,
@@ -117,13 +117,13 @@ class ConfigTemplate:
         return yaml.dump(config_dict, default_flow_style=False, sort_keys=False)
 
     @classmethod
-    def get_config(cls, filepath: str = "config/config.yaml") -> 'ConfigTemplate':
+    def get_config(cls, filepath: str = "index/index.yaml") -> 'ConfigTemplate':
         """
-        Get configuration instance - automatically loads or creates config file
-        Uses singleton pattern to ensure config is only loaded once per filepath
+        Get configuration instance - automatically loads or creates index file
+        Uses singleton pattern to ensure index is only loaded once per filepath
 
         Args:
-            filepath: Path to config file (default: config/config.yaml)
+            filepath: Path to index file (default: index/index.yaml)
 
         Returns:
             Ready-to-use ConfigTemplate instance

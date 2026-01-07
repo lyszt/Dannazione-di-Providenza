@@ -48,7 +48,7 @@ class LLMClientManager:
             self._initialize_client()
             Logger.info(f"{provider.capitalize()} client initialized successfully")
         else:
-            Logger.warning(f"{provider} client not found or not enabled in config")
+            Logger.warning(f"{provider} client not found or not enabled in index")
 
     def _initialize_client(self):
         """Initialize the client based on provider"""
@@ -63,7 +63,7 @@ class LLMClientManager:
             raise AIProviderNotInstalledError("google-genai not installed. Install with: pip install google-genai")
 
         if not self.config.api_key:
-            raise AIAPIKeyMissingError("No API key provided for Gemini client. Set api_key in config.")
+            raise AIAPIKeyMissingError("No API key provided for Gemini client. Set api_key in index.")
 
         try:
             client = genai.Client(api_key=self.config.api_key)
@@ -77,7 +77,7 @@ class LLMClientManager:
             raise AIProviderNotInstalledError("openai not installed. Install with: pip install openai")
 
         if not self.config.api_key:
-            raise AIAPIKeyMissingError("No API key provided for OpenAI client. Set api_key in config.")
+            raise AIAPIKeyMissingError("No API key provided for OpenAI client. Set api_key in index.")
 
         try:
             client = openai.OpenAI(api_key=self.config.api_key)

@@ -22,7 +22,7 @@ class HotkeySignals(QObject):
     """Qt signals for thread-safe hotkey handling"""
     screenshot_requested = pyqtSignal()
 
-def get_ai_client(config: ConfigTemplate):
+def get_ai_client(index: ConfigTemplate):
     ai_client = None
     preferred_provider = config.ai.preferred_provider
 
@@ -33,7 +33,7 @@ def get_ai_client(config: ConfigTemplate):
             if ai_client.is_available():
                 Logger.info(f"{preferred_provider.capitalize()} client initialized successfully")
             else:
-                Logger.warning(f"{preferred_provider} client not available, check config and API keys")
+                Logger.warning(f"{preferred_provider} client not available, check index and API keys")
         except Exception as e:
             Logger.error(f"Failed to initialize {preferred_provider} client: {e}")
 
@@ -44,7 +44,7 @@ def get_ai_client(config: ConfigTemplate):
             if ai_client.is_available():
                 Logger.info(f"{preferred_provider.capitalize()} client initialized successfully")
             else:
-                Logger.warning(f"{preferred_provider} client not available, check config")
+                Logger.warning(f"{preferred_provider} client not available, check index")
         except Exception as e:
             Logger.error(f"Failed to initialize {preferred_provider} client: {e}")
     return ai_client
@@ -71,11 +71,11 @@ class MeslyApp:
         app.setApplicationName("Mesly")
         app.setStyle("Fusion")
 
-        # Initialize AI client based on preferred provider from config
+        # Initialize AI client based on preferred provider from index
         ai_client = get_ai_client(self.config)
 
         if ai_client is None or not ai_client.is_available():
-            Logger.error(f"No AI client available. Please check your config at config/config.yaml")
+            Logger.error(f"No AI client available. Please check your index at index/index.yaml")
 
         self.window = MainWindow(ai_client)
         self.window.show()

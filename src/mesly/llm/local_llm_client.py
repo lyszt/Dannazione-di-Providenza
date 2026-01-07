@@ -49,7 +49,7 @@ class LocalLLMClientManager:
             self._initialize_client()
             Logger.info(f"{provider.capitalize()} local client initialized successfully")
         else:
-            Logger.warning(f"{provider} local client not found or not enabled in config")
+            Logger.warning(f"{provider} local client not found or not enabled in index")
 
     def _initialize_client(self):
         """Initialize the client based on provider"""
@@ -76,7 +76,7 @@ class LocalLLMClientManager:
             raise AIProviderNotInstalledError("llama-cpp-python not installed. Install with: pip install llama-cpp-python")
 
         if not self.config.model_path:
-            raise AIConfigurationError("model_path is required for llamacpp provider. Set model_path in config.")
+            raise AIConfigurationError("model_path is required for llamacpp provider. Set model_path in index.")
 
         try:
             client = Llama(

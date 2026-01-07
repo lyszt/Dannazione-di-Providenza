@@ -2,6 +2,9 @@ from fastapi import FastAPI
 import uvicorn
 from threading import Thread
 
+from src.mesly.context.browser_context import BrowserContext
+
+
 class Server:
     def __init__(self, host="127.0.0.1", port=8000, ai_client=None, config=None, screen_capture=None):
         self.host = host
@@ -12,11 +15,17 @@ class Server:
         self.app = FastAPI(title="Dannazione di Providenza API")
         self._setup_routes()
         self._thread = None
+        self.context = BrowserContext()
 
     def _setup_routes(self):
         @self.app.get("/")
         async def root():
             return {"message": "Dannazione di Providenza Server is running."}
+
+        @self.app.post("/context")
+        async def context(url, title, html_body):
+            self.context.push(url, title, html_body)
+
 
     def start(self):
         """Start the FastAPI server in a background thread"""

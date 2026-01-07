@@ -1,5 +1,5 @@
 # Mesly Configuration Example
-# Copy this file to config.yaml and adjust settings
+# Copy this file to index.yaml and adjust settings
 
 # OCR Settings
 ocr:

@@ -37,7 +37,7 @@ logs/
 
 # Config
 .env
-config/*.json
+index/*.json
 config/config.yaml
 !config/example.json
 

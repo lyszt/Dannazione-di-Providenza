@@ -365,15 +365,15 @@ class MainWindow(QMainWindow):
             Logger.debug("google-cloud-texttospeech not installed, using gTTS")
             return False
 
-        # Check if we have a Gemini API key in config (we'll use it for Cloud TTS)
+        # Check if we have a Gemini API key in index (we'll use it for Cloud TTS)
         try:
             config = ConfigTemplate.get_config()
             for client in config.ai.clients:
                 if client.provider.lower() == 'gemini' and client.api_key:
-                    Logger.debug("Gemini API key found in config, will use Cloud TTS")
+                    Logger.debug("Gemini API key found in index, will use Cloud TTS")
                     return True
         except Exception as e:
-            Logger.debug(f"Error checking config: {e}")
+            Logger.debug(f"Error checking index: {e}")
 
         Logger.debug("No Gemini API key found, using gTTS")
         return False
@@ -383,7 +383,7 @@ class MainWindow(QMainWindow):
         try:
             Logger.info("Using Google Cloud TTS with gemini-2.5-flash-tts for natural voice...")
 
-            # Get API key from config
+            # Get API key from index
             config = ConfigTemplate.get_config()
             api_key = None
             for client in config.ai.clients:
