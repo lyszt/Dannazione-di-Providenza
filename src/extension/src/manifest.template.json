@@ -1,0 +1,87 @@
+{
+  "manifest_version": 3,
+  "name": "Dannazione di Providenza",
+  "version": "1.0.0",
+  "description": "Alive agent integrated browser extension for real-time language assistance",
+  "author": "lyszt",
+
+  "action": {
+    "default_icon": "images/icon.png",
+    "default_popup": "popup.html",
+    "default_title": "Dannazione"
+  },
+
+  "icons": {
+    "16": "images/icon-16.png",
+    "48": "images/icon-48.png",
+    "128": "images/icon-128.png"
+  },
+
+  "permissions": [
+    "scripting",
+    "tabs",
+    "activeTab",
+    "storage",
+    "webRequest",
+    "notifications",
+    "contextMenus"
+  ],
+
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "<all_urls>"
+  ],
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end",
+      "all_frames": false
+    }
+  ],
+
+  "background": {
+    "scripts": ["background.js"],
+    "type": "module"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/*.js",
+        "assets/*.css",
+        "esm.js",
+        "*.js",
+        "*.css",
+        "images/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "commands": {
+    "capture-screen": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Capture screen for OCR"
+    },
+    "toggle-agent": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A",
+        "mac": "Command+Shift+A"
+      },
+      "description": "Toggle agent overlay"
+    }
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "dannazione@lyszt.net",
+      "strict_min_version": "109.0"
+    }
+  }
+}

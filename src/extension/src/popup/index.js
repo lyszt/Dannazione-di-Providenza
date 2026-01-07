@@ -1,42 +1,61 @@
 import { LitElement, css, html } from 'lit';
-import index from './config/index.js';
+import browser from 'webextension-polyfill';
+import { translate } from '@vitalets/google-translate-api';
+import config from '../config/index.js';
 
 /**
- * Dannazione Popup
- * Main popup UI for the extension
+ * Dannazione di Providenza - Popup
  */
 export class DannazionePopup extends LitElement {
   static get properties() {
     return {
-      agentStatus: { type: Object },
       selectedText: { type: String },
+      translatedText: { type: String },
+      isTranslating: { type: Boolean },
+      overlayEnabled: { type: Boolean },
     };
   }
 
   constructor() {
     super();
-    this.agentStatus = {
-      connected: false,
-      status: 'idle',
-    };
     this.selectedText = '';
+    this.translatedText = '';
+    this.isTranslating = false;
+    this.overlayEnabled = false;
   }
 
   connectedCallback() {
     super.connectedCallback();
-    this.checkAgentStatus();
+    this.loadOverlayState();
     this.getSelectedText();
   }
 
-  async checkAgentStatus() {
+  async loadOverlayState() {
     try {
-      const response = await browser.runtime.sendMessage({
-        type: 'GET_AGENT_STATUS',
-      });
-      this.agentStatus = response.status;
+      const result = await browser.storage.local.get('overlayEnabled');
+      this.overlayEnabled = result.overlayEnabled || false;
     } catch (error) {
-      console.error('Failed to get agent status:', error);
-      this.agentStatus = { connected: false, status: 'error' };
+      console.error('Failed to load overlay state:', error);
+    }
+  }
+
+  async toggleOverlay() {
+    this.overlayEnabled = !this.overlayEnabled;
+    try {
+      await browser.storage.local.set({ overlayEnabled: this.overlayEnabled });
+
+      // Notify all tabs about the change
+      const tabs = await browser.tabs.query({});
+      for (const tab of tabs) {
+        if (tab.id) {
+          browser.tabs.sendMessage(tab.id, {
+            type: 'OVERLAY_TOGGLE',
+            enabled: this.overlayEnabled,
+          }).catch(() => {}); // Ignore errors for tabs that don't have content script
+        }
+      }
+    } catch (error) {
+      console.error('Failed to toggle overlay:', error);
     }
   }
 
@@ -47,40 +66,29 @@ export class DannazionePopup extends LitElement {
         const response = await browser.tabs.sendMessage(tab.id, {
           type: 'GET_SELECTED_TEXT',
         });
-        this.selectedText = response.text || '';
+        this.selectedText = response?.text || '';
+
+        if (this.selectedText) {
+          this.translateText();
+        }
       }
     } catch (error) {
       console.error('Failed to get selected text:', error);
     }
   }
 
-  async handleCaptureScreen() {
-    try {
-      await browser.runtime.sendMessage({ type: 'CAPTURE_SCREEN' });
-      window.close();
-    } catch (error) {
-      console.error('Failed to capture screen:', error);
-    }
-  }
-
-  async handleTranslate() {
+  async translateText() {
     if (!this.selectedText) return;
 
+    this.isTranslating = true;
     try {
-      await browser.runtime.sendMessage({
-        type: 'TRANSLATE_TEXT',
-        text: this.selectedText,
-      });
+      const result = await translate(this.selectedText, { to: 'en' });
+      this.translatedText = result.text;
     } catch (error) {
-      console.error('Failed to translate:', error);
-    }
-  }
-
-  async handleToggleAgent() {
-    try {
-      await browser.runtime.sendMessage({ type: 'TOGGLE_AGENT' });
-    } catch (error) {
-      console.error('Failed to toggle agent:', error);
+      console.error('Translation failed:', error);
+      this.translatedText = 'Translation failed';
+    } finally {
+      this.isTranslating = false;
     }
   }
 
@@ -88,44 +96,41 @@ export class DannazionePopup extends LitElement {
     return html`
       <div class="popup-container">
         <header class="popup-header">
-          <h1>Dannazione</h1>
-          <div class="status-indicator ${this.agentStatus.connected ? 'connected' : 'disconnected'}">
-            ${this.agentStatus.connected ? '●' : '○'}
-          </div>
+          <h1>Dannazione di Providenza</h1>
         </header>
 
+        <div class="settings-section">
+          <div class="setting-item">
+            <label>
+              <span>Auto-translate on selection</span>
+              <input
+                type="checkbox"
+                class="toggle"
+                ?checked=${this.overlayEnabled}
+                @change=${this.toggleOverlay}
+              />
+            </label>
+          </div>
+        </div>
+
         <div class="popup-content">
-          <div class="agent-status">
-            <p><strong>Agent:</strong> ${index.agent.name}</p>
-            <p><strong>Status:</strong> ${this.agentStatus.status}</p>
-          </div>
-
-          <div class="quick-actions">
-            <button @click=${this.handleCaptureScreen} class="action-btn primary">
-              📸 Capture Screen
-            </button>
-
-            <button
-              @click=${this.handleTranslate}
-              class="action-btn secondary"
-              ?disabled=${!this.selectedText}
-            >
-              🌐 Translate Selected
-            </button>
-
-            <button @click=${this.handleToggleAgent} class="action-btn secondary">
-              🤖 Toggle Agent
-            </button>
-          </div>
-
           ${this.selectedText
             ? html`
-                <div class="selected-text">
-                  <strong>Selected Text:</strong>
-                  <p>${this.selectedText.substring(0, 100)}${this.selectedText.length > 100 ? '...' : ''}</p>
+                <div class="text-section">
+                  <div class="text-block">
+                    <strong>Original:</strong>
+                    <p>${this.selectedText}</p>
+                  </div>
+
+                  <div class="text-block translation">
+                    <strong>Translation:</strong>
+                    ${this.isTranslating
+                      ? html`<p class="loading">Translating...</p>`
+                      : html`<p>${this.translatedText || 'No translation available'}</p>`}
+                  </div>
                 </div>
               `
-            : ''}
+            : html`<p class="hint">Select text on the page</p>`}
         </div>
       </div>
     `;
@@ -133,11 +138,18 @@ export class DannazionePopup extends LitElement {
 
   static get styles() {
     return css`
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
       :host {
         display: block;
-        width: 350px;
-        min-height: 400px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        min-width: 400px;
+        width: 450px;
+        min-height: 500px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         background: #1a1a1a;
         color: #e0e0e0;
       }
@@ -146,46 +158,67 @@ export class DannazionePopup extends LitElement {
         display: flex;
         flex-direction: column;
         height: 100%;
+        margin: 0;
       }
 
       .popup-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 16px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-radius: 8px 8px 0 0;
       }
 
       .popup-header h1 {
         font-size: 18px;
         font-weight: 600;
         color: white;
-        margin: 0;
       }
 
-      .status-indicator {
-        font-size: 20px;
-        transition: all 0.3s ease;
+      .settings-section {
+        background: #252525;
+        border-bottom: 1px solid #3a3a3a;
       }
 
-      .status-indicator.connected {
-        color: #4ade80;
-        animation: pulse 2s ease-in-out infinite;
+      .setting-item {
+        padding: 12px 16px;
       }
 
-      .status-indicator.disconnected {
-        color: #f87171;
+      .setting-item label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        color: #e0e0e0;
+        font-size: 14px;
       }
 
-      @keyframes pulse {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.5;
-        }
+      .toggle {
+        width: 40px;
+        height: 20px;
+        appearance: none;
+        background: #3a3a3a;
+        border-radius: 10px;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      .toggle:checked {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      .toggle::before {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: white;
+        top: 2px;
+        left: 2px;
+        transition: left 0.3s;
+      }
+
+      .toggle:checked::before {
+        left: 22px;
       }
 
       .popup-content {
@@ -194,81 +227,47 @@ export class DannazionePopup extends LitElement {
         background: #2d2d2d;
       }
 
-      .agent-status {
-        background: #3a3a3a;
-        padding: 12px;
-        border-radius: 6px;
-        margin-bottom: 16px;
-      }
-
-      .agent-status p {
-        margin: 6px 0;
-        font-size: 13px;
-      }
-
-      .agent-status strong {
+      .hint {
+        text-align: center;
         color: #9ca3af;
+        margin-top: 40px;
       }
 
-      .quick-actions {
+      .text-section {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        margin-bottom: 16px;
+        gap: 16px;
       }
 
-      .action-btn {
-        padding: 12px 16px;
-        border: none;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        text-align: left;
-      }
-
-      .action-btn.primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-      }
-
-      .action-btn.primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-      }
-
-      .action-btn.secondary {
-        background: #3a3a3a;
-        color: #e0e0e0;
-      }
-
-      .action-btn.secondary:hover {
-        background: #4a4a4a;
-      }
-
-      .action-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      .selected-text {
+      .text-block {
         background: #3a3a3a;
         padding: 12px;
         border-radius: 6px;
-        font-size: 12px;
       }
 
-      .selected-text strong {
+      .text-block.translation {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        border: 1px solid rgba(102, 126, 234, 0.3);
+      }
+
+      .text-block strong {
         display: block;
         margin-bottom: 8px;
         color: #9ca3af;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
-      .selected-text p {
+      .text-block p {
         color: #d1d5db;
-        line-height: 1.5;
-        margin: 0;
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      .loading {
+        color: #667eea;
+        font-style: italic;
       }
     `;
   }
