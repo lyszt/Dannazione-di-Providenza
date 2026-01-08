@@ -1,4 +1,4 @@
-.PHONY: build clean dev lint install help quick-build production firefox
+.PHONY: build clean dev lint install help quick-build production chrome
 
 # Default target
 .DEFAULT_GOAL := help
@@ -39,7 +39,7 @@ help:
 	@echo "  production           Production build with optimizations"
 	@echo ""
 	@echo "$(YELLOW)Extension:$(NC)"
-	@echo "  firefox              Run extension in Firefox"
+	@echo "  chrome               Run extension in Chrome/Chromium"
 	@echo ""
 
 ## dev: Start development server
@@ -84,10 +84,10 @@ production: clean install
 	@du -sh $(BUILD_DIR) | awk '{print "$(YELLOW)Build size: " $$1 "$(NC)"}'
 	@du -sh $(EXTENSION_PACKED) | awk '{print "$(YELLOW)Extension size: " $$1 "$(NC)"}'
 
-## firefox: Run extension in Firefox
-firefox: quick-build
-	@echo "$(GREEN)Running extension in Firefox...$(NC)"
-	@npx web-ext run --source-dir=$(BUILD_DIR)
+## chrome: Run extension in Chrome/Chromium
+chrome: quick-build
+	@echo "$(GREEN)Running extension in Chrome/Chromium...$(NC)"
+	@npx web-ext run --source-dir=$(BUILD_DIR) --target=chromium
 
 ## package: Package the extension
 package:

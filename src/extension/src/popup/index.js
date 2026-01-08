@@ -1,5 +1,4 @@
 import { LitElement, css, html } from 'lit';
-import browser from 'webextension-polyfill';
 import { translate } from '@vitalets/google-translate-api';
 import config from '../config/index.js';
 
@@ -13,6 +12,8 @@ export class DannazionePopup extends LitElement {
       translatedText: { type: String },
       isTranslating: { type: Boolean },
       overlayEnabled: { type: Boolean },
+      fromLang: { type: String },
+      toLang: { type: String },
     };
   }
 
@@ -21,34 +22,56 @@ export class DannazionePopup extends LitElement {
     this.selectedText = '';
     this.translatedText = '';
     this.isTranslating = false;
-    this.overlayEnabled = false;
+    this.overlayEnabled = true;
+    this.fromLang = 'auto';
+    this.toLang = 'en';
+    this.languages = [
+      { code: 'auto', name: 'Auto Detect' },
+      { code: 'en', name: 'English' },
+      { code: 'es', name: 'Spanish' },
+      { code: 'fr', name: 'French' },
+      { code: 'de', name: 'German' },
+      { code: 'it', name: 'Italian' },
+      { code: 'pt', name: 'Portuguese' },
+      { code: 'ru', name: 'Russian' },
+      { code: 'ja', name: 'Japanese' },
+      { code: 'zh-CN', name: 'Chinese (Simplified)' },
+      { code: 'ko', name: 'Korean' },
+      { code: 'ar', name: 'Arabic' },
+      { code: 'hi', name: 'Hindi' },
+      { code: 'tr', name: 'Turkish' },
+      { code: 'pl', name: 'Polish' },
+      { code: 'nl', name: 'Dutch' },
+    ];
   }
 
   connectedCallback() {
     super.connectedCallback();
-    this.loadOverlayState();
+    this.loadSettings();
     this.getSelectedText();
   }
 
-  async loadOverlayState() {
+  async loadSettings() {
     try {
-      const result = await browser.storage.local.get('overlayEnabled');
-      this.overlayEnabled = result.overlayEnabled || false;
+      const result = await chrome.storage.local.get(['overlayEnabled', 'fromLang', 'toLang']);
+      this.overlayEnabled = result.overlayEnabled !== undefined ? result.overlayEnabled : true;
+      this.fromLang = result.fromLang || 'auto';
+      this.toLang = result.toLang || 'en';
     } catch (error) {
-      console.error('Failed to load overlay state:', error);
+      console.error('Failed to load settings:', error);
     }
   }
 
   async toggleOverlay() {
     this.overlayEnabled = !this.overlayEnabled;
     try {
-      await browser.storage.local.set({ overlayEnabled: this.overlayEnabled });
+      await chrome.storage.local.set({ overlayEnabled: this.overlayEnabled });
 
       // Notify all tabs about the change
-      const tabs = await browser.tabs.query({});
+      const tabs = await chrome.tabs.query({});
       for (const tab of tabs) {
         if (tab.id) {
-          browser.tabs.sendMessage(tab.id, {
+          chrome.tabs.sendMessage(tab.id, {
             type: 'OVERLAY_TOGGLE',
             enabled: this.overlayEnabled,
           }).catch(() => {}); // Ignore errors for tabs that don't have content script
@@ -59,17 +82,79 @@ export class DannazionePopup extends LitElement {
     }
   }
 
+  async handleFromLangChange(e) {
+    this.fromLang = e.target.value;
+    try {
+      await chrome.storage.local.set({ fromLang: this.fromLang });
+      // Re-translate if there's selected text
+      if (this.selectedText) {
+        this.translateText();
+      }
+    } catch (error) {
+      console.error('Failed to save from language:', error);
+    }
+  }
+
+  async handleToLangChange(e) {
+    this.toLang = e.target.value;
+    try {
+      await chrome.storage.local.set({ toLang: this.toLang });
+      // Re-translate if there's selected text
+      if (this.selectedText) {
+        this.translateText();
+      }
+    } catch (error) {
+      console.error('Failed to save to language:', error);
+    }
+  }
+
   async getSelectedText() {
     try {
-      const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-      if (tab.id) {
-        const response = await browser.tabs.sendMessage(tab.id, {
-          type: 'GET_SELECTED_TEXT',
-        });
-        this.selectedText = response?.text || '';
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-        if (this.selectedText) {
-          this.translateText();
+      if (!tab || !tab.url || (!tab.url.startsWith('http://') && !tab.url.startsWith('https://'))) {
+        this.selectedText = '';
+        return;
+      }
+
+      if (tab.id) {
+        try {
+          const response = await chrome.tabs.sendMessage(tab.id, {
+            type: 'GET_SELECTED_TEXT',
+          });
+          this.selectedText = response?.text || '';
+
+          if (this.selectedText) {
+            this.translateText();
+          }
+        } catch (msgError) {
+          // Content script not loaded yet, inject it
+          if (msgError.message.includes('Receiving end does not exist')) {
+            try {
+              await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ['content.js']
+              });
+
+              // Wait a bit for injection
+              await new Promise(resolve => setTimeout(resolve, 100));
+
+              // Try again
+              const response = await chrome.tabs.sendMessage(tab.id, {
+                type: 'GET_SELECTED_TEXT',
+              });
+              this.selectedText = response?.text || '';
+
+              if (this.selectedText) {
+                this.translateText();
+              }
+            } catch (injectError) {
+              // Page can't be scripted, silently ignore
+              this.selectedText = '';
+            }
+          } else {
+            throw msgError;
+          }
         }
       }
     } catch (error) {
@@ -82,7 +167,10 @@ export class DannazionePopup extends LitElement {
 
     this.isTranslating = true;
     try {
-      const result = await translate(this.selectedText, { to: 'en' });
+      const result = await translate(this.selectedText, {
+        from: this.fromLang === 'auto' ? undefined : this.fromLang,
+        to: this.toLang
+      });
       this.translatedText = result.text;
     } catch (error) {
       console.error('Translation failed:', error);
@@ -100,6 +188,32 @@ export class DannazionePopup extends LitElement {
         </header>
 
         <div class="settings-section">
+          <div class="setting-item">
+            <label>
+              <span>From Language</span>
+              <select class="lang-select" @change=${this.handleFromLangChange} .value=${this.fromLang}>
+                ${this.languages.map(lang => html`
+                  <option value=${lang.code} ?selected=${lang.code === this.fromLang}>
+                    ${lang.name}
+                  </option>
+                `)}
+              </select>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <label>
+              <span>To Language</span>
+              <select class="lang-select" @change=${this.handleToLangChange} .value=${this.toLang}>
+                ${this.languages.filter(l => l.code !== 'auto').map(lang => html`
+                  <option value=${lang.code} ?selected=${lang.code === this.toLang}>
+                    ${lang.name}
+                  </option>
+                `)}
+              </select>
+            </label>
+          </div>
+
           <div class="setting-item">
             <label>
               <span>Auto-translate on selection</span>
@@ -219,6 +333,26 @@ export class DannazionePopup extends LitElement {
 
       .toggle:checked::before {
         left: 22px;
+      }
+
+      .lang-select {
+        background: #3a3a3a;
+        color: #e0e0e0;
+        border: 1px solid #4a4a4a;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 13px;
+        cursor: pointer;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      .lang-select:hover {
+        border-color: #667eea;
+      }
+
+      .lang-select:focus {
+        border-color: #667eea;
       }
 
       .popup-content {

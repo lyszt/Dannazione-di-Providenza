@@ -6,15 +6,15 @@
   "author": "lyszt",
 
   "action": {
-    "default_icon": "images/icon.png",
+    "default_icon": "images/favicon-32x32.png",
     "default_popup": "popup.html",
     "default_title": "Dannazione"
   },
 
   "icons": {
-    "16": "images/icon-16.png",
-    "48": "images/icon-48.png",
-    "128": "images/icon-128.png"
+    "16": "images/favicon-16x16.png",
+    "48": "images/favicon-32x32.png",
+    "128": "images/android-chrome-192x192.png"
   },
 
   "permissions": [
@@ -35,7 +35,7 @@
 
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["http://*/*", "https://*/*"],
       "js": ["content.js"],
       "run_at": "document_end",
       "all_frames": false
@@ -43,7 +43,7 @@
   ],
 
   "background": {
-    "scripts": ["background.js"],
+    "service_worker": "background.js",
     "type": "module"
   },
 
@@ -59,29 +59,5 @@
       ],
       "matches": ["<all_urls>"]
     }
-  ],
-
-  "commands": {
-    "capture-screen": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
-      },
-      "description": "Capture screen for OCR"
-    },
-    "toggle-agent": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+A",
-        "mac": "Command+Shift+A"
-      },
-      "description": "Toggle agent overlay"
-    }
-  },
-
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "dannazione@lyszt.net",
-      "strict_min_version": "109.0"
-    }
-  }
+  ]
 }

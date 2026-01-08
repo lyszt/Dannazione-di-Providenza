@@ -2,9 +2,6 @@
  * Dannazione di Providenza - Content Script
  */
 
-// Firefox provides browser global, Chrome provides chrome
-const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
-
 console.log('[Dannazione] Content script loaded on', window.location.href);
 
 let overlayEnabled = true;
@@ -12,15 +9,15 @@ let translationOverlay = null;
 let isTranslating = false;
 
 // Load overlay state from storage
-browserAPI.storage.local.get('overlayEnabled').then((result) => {
-  overlayEnabled = result.overlayEnabled || false;
+chrome.storage.local.get('overlayEnabled').then((result) => {
+  overlayEnabled = result.overlayEnabled !== undefined ? result.overlayEnabled : true;
   if (overlayEnabled) {
     attachSelectionListener();
   }
 });
 
 // Handle messages from background/popup
-browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[Dannazione] Received message:', message);
 
   switch (message.type) {
@@ -83,7 +80,7 @@ async function handleTextSelection(event) {
   // Request translation from background script
   isTranslating = true;
   try {
-    const response = await browserAPI.runtime.sendMessage({
+    const response = await chrome.runtime.sendMessage({
       type: 'TRANSLATE_TEXT',
       text: selectedText,
     });
