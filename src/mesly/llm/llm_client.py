@@ -95,7 +95,7 @@ class LLMClientManager:
 
         Args:
             prompt: Text prompt to generate from
-            system_prompt: Optional system prompt for context
+            system_prompt: Optional system prompt for agent
             stream_callback: Optional callback function(chunk: str) for streaming responses
 
         Returns:

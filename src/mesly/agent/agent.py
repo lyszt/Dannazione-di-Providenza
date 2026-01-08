@@ -1,0 +1,351 @@
+from typing import Deque, Dict, Optional, Union
+import json
+from transformers import pipeline
+
+from src.mesly.agent.browser_context import BrowserContext
+from src.mesly.agent.memory.short_term import ShortTermMemory
+from src.mesly.agent.self_identity import SelfIdentity
+from src.mesly.config import ConfigTemplate
+from src.mesly.config.prompts import LanguageTutorPrompts, get_tutor_prompt
+from src.mesly.llm import LLMClientManager, LocalLLMClientManager
+from src.mesly.utils import Logger
+
+
+class KnowledgeBase:
+    def __init__(self, config):
+        self.browser_context: BrowserContext = BrowserContext()
+        self.config = config
+
+
+class Agent:
+    def __init__(self, config: ConfigTemplate):
+        """
+        Initialize Agent with AI client based on configuration
+
+        Args:
+            config: Configuration template containing AI provider settings
+        """
+        self.config = config
+        self.knowledge_base = KnowledgeBase(config)
+        self.profile = SelfIdentity()
+        self.profile.available_tools = []
+        self.profile.active_context = json.dumps(self.knowledge_base.__dict__)
+        self.short_term_memory = ShortTermMemory()
+        self.ai_client: Optional[Union[LLMClientManager, LocalLLMClientManager]] = None
+        self.sentiment_analyzer = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
+        # Initialize AI client based on preferred provider
+        self._initialize_ai_client()
+
+    def _initialize_ai_client(self) -> None:
+        """Initialize AI client based on config preferred provider"""
+        preferred_provider = self.config.ai.preferred_provider
+
+        if preferred_provider in ["gemini", "openai"]:
+            # Cloud AI providers
+            try:
+                self.ai_client = LLMClientManager(provider=preferred_provider, settings=self.config)
+                if self.ai_client.is_available():
+                    Logger.info(f"Agent: {preferred_provider.capitalize()} client initialized")
+                else:
+                    Logger.warning(f"Agent: {preferred_provider} client not available")
+                    self.ai_client = None
+            except Exception as e:
+                Logger.error(f"Agent: Failed to initialize {preferred_provider} client: {e}")
+                self.ai_client = None
+
+        elif preferred_provider in ["ollama", "llamacpp"]:
+            # Local LLM providers
+            try:
+                self.ai_client = LocalLLMClientManager(provider=preferred_provider, settings=self.config)
+                if self.ai_client.is_available():
+                    Logger.info(f"Agent: {preferred_provider.capitalize()} client initialized")
+                else:
+                    Logger.warning(f"Agent: {preferred_provider} client not available")
+                    self.ai_client = None
+            except Exception as e:
+                Logger.error(f"Agent: Failed to initialize {preferred_provider} client: {e}")
+                self.ai_client = None
+        else:
+            Logger.error(f"Agent: Unknown provider '{preferred_provider}'")
+            self.ai_client = None
+
+    def is_ready(self) -> bool:
+        """Check if agent has a working AI client"""
+        return self.ai_client is not None and self.ai_client.is_available()
+
+    def generate(self, prompt: str, system_prompt: Optional[str] = None, stream_callback=None) -> Optional[str]:
+        """
+        Generate text response using the agent's AI client
+
+        Args:
+            prompt: User prompt/question
+            system_prompt: Optional system instructions
+            stream_callback: Optional callback function for streaming (receives text chunks)
+
+        Returns:
+            Generated text or None if failed
+        """
+        if not self.is_ready():
+            Logger.error("Agent: AI client not available for generation")
+            return None
+
+        try:
+            return self.ai_client.generate(prompt, system_prompt, stream_callback)
+        except Exception as e:
+            Logger.error(f"Agent: Generation failed: {e}")
+            return None
+
+    def generate_with_context(self, prompt: str, system_prompt: Optional[str] = None,
+                             use_browser_context: bool = True,
+                             use_memory_context: bool = True,
+                             stream_callback=None) -> Optional[str]:
+        """
+        Generate text with agent's knowledge base context
+
+        Args:
+            prompt: User prompt/question
+            system_prompt: Optional system instructions
+            use_browser_context: Include browser context in prompt
+            use_memory_context: Include short-term memory context (high activation memories)
+            stream_callback: Optional callback for streaming
+
+        Returns:
+            Generated text or None if failed
+        """
+        if not self.is_ready():
+            Logger.error("Agent: AI client not available for generation")
+            return None
+
+        # Prune old/low-activation memories before generating
+        self.short_term_memory.prune()
+
+        # Build context-enriched prompt
+        enriched_prompt = ""
+
+        # Add memory context if requested (most emotionally salient interactions)
+        if use_memory_context:
+            memory_summary = self.short_term_memory.get_context_summary()
+            if memory_summary and memory_summary != "No recent memories.":
+                enriched_prompt += f"{memory_summary}\n\n"
+                Logger.debug("Agent: Including high-activation memories in context")
+
+        # Add browser context if requested
+        if use_browser_context and self.knowledge_base.browser_context.get_context():
+            context_str = self._format_browser_context()
+            enriched_prompt += f"{context_str}\n\n"
+
+        # Add user prompt
+        enriched_prompt += f"User question: {prompt}"
+
+        return self.generate(enriched_prompt, system_prompt, stream_callback)
+
+    def _format_browser_context(self) -> str:
+        """Format browser context for inclusion in prompts"""
+        contexts = self.knowledge_base.browser_context.get_context()
+
+        if not contexts:
+            return ""
+
+        formatted = "Recent browser context:\n"
+        for i, ctx in enumerate(contexts, 1):
+            formatted += f"\n[Page {i}]\n"
+            formatted += f"Title: {ctx.get('title', 'Unknown')}\n"
+            formatted += f"URL: {ctx.get('url', 'Unknown')}\n"
+            formatted += f"Content: {ctx.get('body', '')[:500]}...\n"
+
+        return formatted
+
+    def analyze_sentiment(self, text: str) -> Dict[str, any]:
+        """
+        Analyze sentiment of text to inform agent reactions
+
+        Args:
+            text: Text to analyze
+
+        Returns:
+            Sentiment analysis result with label and score
+        """
+        try:
+            result = self.sentiment_analyzer(text[:512])[0]  # Truncate to model limit
+            Logger.debug(f"Agent: Sentiment - {result['label']} ({result['score']:.2f})")
+            return result
+        except Exception as e:
+            Logger.error(f"Agent: Sentiment analysis failed: {e}")
+            return {"label": "NEUTRAL", "score": 0.5}
+
+    def process_ocr_text(self, ocr_text: str, mode: str = "ocr",
+                        system_prompt: Optional[str] = None, stream_callback=None) -> Optional[str]:
+        """
+        Process OCR-extracted text with language tutoring
+
+        Args:
+            ocr_text: Text extracted from OCR
+            mode: Type of OCR processing ("ocr", "translation", "explanation")
+            system_prompt: Optional custom system prompt
+            stream_callback: Optional streaming callback
+
+        Returns:
+            AI response or None if failed
+        """
+        if not self.is_ready():
+            Logger.error("Agent: Cannot process OCR text, AI client not ready")
+            return None
+
+        # Analyze sentiment to understand user's emotional state
+        sentiment = self.analyze_sentiment(ocr_text)
+
+        # Use default language tutor system prompt if not provided
+        if system_prompt is None:
+            system_prompt = LanguageTutorPrompts.get_system_prompt()
+
+        # Build the user prompt based on mode
+        user_prompt = get_tutor_prompt(ocr_text, mode=mode)
+
+        Logger.info(f"Agent: Processing OCR text (mode={mode}, {len(ocr_text)} chars, sentiment={sentiment['label']})")
+
+        # Add to short-term memory
+        self.short_term_memory.add_item({
+            "type": "ocr_processing",
+            "mode": mode,
+            "text": ocr_text[:200],
+            "sentiment": sentiment,
+            "timestamp": "now"
+        })
+
+        return self.generate(user_prompt, system_prompt, stream_callback)
+
+    def process_user_question(self, question: str, context_text: Optional[str] = None,
+                             system_prompt: Optional[str] = None,
+                             use_browser_context: bool = False,
+                             stream_callback=None) -> Optional[str]:
+        """
+        Process a direct user question with optional context
+
+        Args:
+            question: User's question
+            context_text: Optional context text (e.g., OCR text, document snippet)
+            system_prompt: Optional system prompt
+            use_browser_context: Whether to include browser context
+            stream_callback: Optional streaming callback
+
+        Returns:
+            AI response or None if failed
+        """
+        if not self.is_ready():
+            Logger.error("Agent: Cannot process question, AI client not ready")
+            return None
+
+        # Analyze sentiment of question to gauge user's tone
+        sentiment = self.analyze_sentiment(question)
+
+        # Use default language tutor system prompt if not provided
+        if system_prompt is None:
+            system_prompt = LanguageTutorPrompts.get_system_prompt()
+
+        # Build enriched prompt
+        enriched_prompt = ""
+
+        # Add browser context if requested
+        if use_browser_context and self.knowledge_base.browser_context.get_context():
+            enriched_prompt += self._format_browser_context() + "\n\n"
+
+        # Add context text if provided
+        if context_text:
+            enriched_prompt += f"Context text:\n{context_text}\n\n"
+
+        # Add user question
+        enriched_prompt += f"User question: {question}"
+
+        Logger.info(f"Agent: Processing user question: '{question[:50]}...' (sentiment={sentiment['label']})")
+
+        # Add to short-term memory
+        self.short_term_memory.add_item({
+            "type": "user_question",
+            "question": question,
+            "has_context": context_text is not None,
+            "sentiment": sentiment,
+            "timestamp": "now"
+        })
+
+        return self.generate(enriched_prompt, system_prompt, stream_callback)
+
+    def process_screenshot_inquiry(self, ocr_text: str, user_question: str,
+                                   system_prompt: Optional[str] = None,
+                                   stream_callback=None) -> Optional[str]:
+        """
+        Process user inquiry about a screenshot with OCR text
+
+        Args:
+            ocr_text: Text extracted from screenshot
+            user_question: User's question about the screenshot
+            system_prompt: Optional system prompt
+            stream_callback: Optional streaming callback
+
+        Returns:
+            AI response or None if failed
+        """
+        if not self.is_ready():
+            Logger.error("Agent: Cannot process screenshot inquiry, AI client not ready")
+            return None
+
+        # Analyze sentiment of both OCR text and user question
+        ocr_sentiment = self.analyze_sentiment(ocr_text)
+        question_sentiment = self.analyze_sentiment(user_question)
+
+        # Use default language tutor system prompt if not provided
+        if system_prompt is None:
+            system_prompt = LanguageTutorPrompts.get_system_prompt()
+
+        # Build combined prompt
+        combined_prompt = f"""This text was extracted from a screenshot:
+
+        {ocr_text}
+        
+        User's question: {user_question}
+        
+        Answer briefly and clearly."""
+
+        Logger.info(f"Agent: Processing screenshot inquiry - OCR: {len(ocr_text)} chars, Question: '{user_question[:50]}...'")
+        Logger.debug(f"Agent: OCR sentiment={ocr_sentiment['label']}, Question sentiment={question_sentiment['label']}")
+
+        # Add to short-term memory
+        self.short_term_memory.add_item({
+            "type": "screenshot_inquiry",
+            "ocr_text": ocr_text[:200],
+            "question": user_question,
+            "ocr_sentiment": ocr_sentiment,
+            "question_sentiment": question_sentiment,
+            "timestamp": "now"
+        })
+
+        return self.generate(combined_prompt, system_prompt, stream_callback)
+
+    def log_memory_state(self):
+        """Log current memory activation states for debugging"""
+        Logger.info(f"Short-Term Memory State: {len(self.short_term_memory.active.items)} memories")
+
+        if not self.short_term_memory.active.items:
+            Logger.info("No memories stored")
+            return
+
+        sorted_memories = sorted(
+            self.short_term_memory.active.items,
+            key=lambda x: x.activation,
+            reverse=True
+        )
+
+        for i, mem in enumerate(sorted_memories, 1):
+            content = mem.content
+            mem_type = content.get('type', 'unknown')
+            Logger.info(f"[{i}] {mem_type} | Activation: {mem.activation:.2f} | Boost: {mem.sentiment_boost:.1f}")
+
+            if 'sentiment' in content:
+                sent = content['sentiment']
+                Logger.debug(f"    Sentiment: {sent.get('label')} ({sent.get('score', 0):.2f})")
+
+            if mem_type == 'screenshot_inquiry':
+                Logger.debug(f"    Q: {content.get('question', '')[:60]}...")
+            elif mem_type == 'user_question':
+                Logger.debug(f"    Q: {content.get('question', '')[:60]}...")
+
+

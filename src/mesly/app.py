@@ -9,12 +9,12 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer
 
 from .config.config import ConfigTemplate
-from .llm import LocalLLMClientManager, LLMClientManager
 from .utils import Logger, HotkeyManager
 from .capture import ScreenCapture
 from .window.main_window import MainWindow
 from .config.prompts import LanguageTutorPrompts
 from .server.server import Server
+from .agent.agent import Agent
 
 __version__ = "0.1.0"
 
@@ -22,33 +22,6 @@ __version__ = "0.1.0"
 class HotkeySignals(QObject):
     """Qt signals for thread-safe hotkey handling"""
     screenshot_requested = pyqtSignal()
-
-def get_ai_client(config: ConfigTemplate):
-    ai_client = None
-    preferred_provider = config.ai.preferred_provider
-
-    if preferred_provider in ["gemini", "openai"]:
-        # Cloud AI providers
-        try:
-            ai_client = LLMClientManager(provider=preferred_provider, settings=config)
-            if ai_client.is_available():
-                Logger.info(f"{preferred_provider.capitalize()} client initialized successfully")
-            else:
-                Logger.warning(f"{preferred_provider} client not available, check config and API keys")
-        except Exception as e:
-            Logger.error(f"Failed to initialize {preferred_provider} client: {e}")
-
-    elif preferred_provider in ["ollama", "llamacpp"]:
-        # Local LLM providers
-        try:
-            ai_client = LocalLLMClientManager(provider=preferred_provider, settings=config)
-            if ai_client.is_available():
-                Logger.info(f"{preferred_provider.capitalize()} client initialized successfully")
-            else:
-                Logger.warning(f"{preferred_provider} client not available, check config")
-        except Exception as e:
-            Logger.error(f"Failed to initialize {preferred_provider} client: {e}")
-    return ai_client
 
 class MeslyApp:
     def __init__(self):
@@ -72,13 +45,16 @@ class MeslyApp:
         app.setApplicationName("Mesly")
         app.setStyle("Fusion")
 
-        # Initialize AI client based on preferred provider from index
-        ai_client = get_ai_client(self.config)
+        # Initialize Agent with AI client
+        Logger.info("Initializing Agent...")
+        self.agent = Agent(self.config)
 
-        if ai_client is None or not ai_client.is_available():
-            Logger.error(f"No AI client available. Please check your index at index/index.yaml")
+        if not self.agent.is_ready():
+            Logger.error(f"Agent not ready. Please check your config at config/config.yaml")
+        else:
+            Logger.info("Agent initialized and ready")
 
-        self.window = MainWindow(ai_client)
+        self.window = MainWindow(self.agent)
         self.window.show()
 
         # Start hotkey listeners
@@ -88,7 +64,7 @@ class MeslyApp:
         self.server = Server(
             host="127.0.0.1",
             port=8000,
-            ai_client=ai_client,
+            agent=self.agent,
             config=self.config,
             screen_capture=self.screen_capture
         )
@@ -165,20 +141,9 @@ class MeslyApp:
                     if user_question:
                         Logger.info(f"User question: {user_question}")
 
-                        # Build combined prompt with OCR text and user's question
-                        combined_prompt = f"""This text was extracted from a screenshot:
-
-{ocr_text}
-
-User's question: {user_question}
-
-Answer briefly."""
-
-                        # Get system prompt
-                        system_prompt = LanguageTutorPrompts.SYSTEM_PROMPT
-
-                        # Send to AI through main window (will show in UI and play audio)
-                        self.window._process_custom_prompt(combined_prompt, system_prompt)
+                        # Process screenshot inquiry through Agent
+                        # Window will handle the UI and audio presentation
+                        self.window.process_screenshot_inquiry(ocr_text, user_question)
                     else:
                         Logger.info("User cancelled prompt")
                         self.window.lbl_status.setText("Screenshot captured, no AI request")

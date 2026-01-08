@@ -72,7 +72,7 @@ class Logger:
         Get logger instance
 
         Args:
-            name: Optional logger name for context
+            name: Optional logger name for agent
 
         Returns:
             Logger instance

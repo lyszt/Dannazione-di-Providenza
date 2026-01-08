@@ -9,9 +9,8 @@ from PyQt5.QtCore import Qt, QUrl, QThread, pyqtSignal
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from ..capture.stream_thread import ScreenShareThread
-from ..llm import LocalLLMClientManager
 from ..utils import Logger
-from ..config.prompts import LanguageTutorPrompts, get_tutor_prompt
+from ..config.prompts import LanguageTutorPrompts
 from ..config.config import ConfigTemplate
 
 try:
@@ -81,20 +80,31 @@ class AIGenerationThread(QThread):
     finished = pyqtSignal(str)  # Emits the complete AI response
     error = pyqtSignal(str)  # Emits error message
 
-    def __init__(self, ai_client, prompt, system_prompt=None):
+    def __init__(self, agent, prompt, system_prompt=None, use_agent_method=None, **kwargs):
         super().__init__()
-        self.ai_client = ai_client
+        self.agent = agent
         self.prompt = prompt
         self.system_prompt = system_prompt
+        self.use_agent_method = use_agent_method  # Optional: specific agent method to call
+        self.kwargs = kwargs  # Additional arguments for agent methods
 
     def run(self):
         """Run AI generation in background thread with streaming"""
         try:
-            response = self.ai_client.generate(
-                prompt=self.prompt,
-                system_prompt=self.system_prompt,
-                stream_callback=lambda chunk: self.streaming.emit(chunk)
-            )
+            # Use specific agent method if provided, otherwise use basic generate
+            if self.use_agent_method:
+                response = self.use_agent_method(
+                    **self.kwargs,
+                    system_prompt=self.system_prompt,
+                    stream_callback=lambda chunk: self.streaming.emit(chunk)
+                )
+            else:
+                response = self.agent.generate(
+                    prompt=self.prompt,
+                    system_prompt=self.system_prompt,
+                    stream_callback=lambda chunk: self.streaming.emit(chunk)
+                )
+
             if response:
                 self.finished.emit(response)
             else:
@@ -105,14 +115,14 @@ class AIGenerationThread(QThread):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, ai_client):
+    def __init__(self, agent):
         super().__init__()
         self.setWindowTitle("Mesly - Fullscreen OCR")
         self.resize(500, 600)
 
         # Tools
         self.stream_thread = None
-        self.ai_client = ai_client
+        self.agent = agent
         self.ai_generation_thread = None
         self.audio_player = QMediaPlayer()
         self.audio_player.error.connect(self._on_audio_error)
@@ -251,41 +261,37 @@ class MainWindow(QMainWindow):
             Logger.warning("AI generation already in progress, skipping new request")
             return
 
-        # Get the system prompt for language tutor context
-        system_prompt = LanguageTutorPrompts.get_system_prompt()
-
-        # Use OCR context prompt since text came from screenshot
-        user_prompt = get_tutor_prompt(text, mode="ocr")
-
         # Update UI with detailed status
         Logger.info("Sending text to AI language tutor...")
-        provider_name = getattr(self.ai_client, 'provider', 'AI')
+        provider_name = getattr(self.agent.ai_client, 'provider', 'AI') if self.agent.ai_client else 'AI'
         self.lbl_status.setText(f"AI: Sending {len(text)} chars to {provider_name}...")
         self.txt_ai_response.setPlainText("Waiting for AI response...")
 
-        # Create and start the AI generation thread
+        # Create and start the AI generation thread using Agent's process_ocr_text
         self.lbl_status.setText(f"AI: {provider_name} is thinking...")
         self.txt_ai_response.clear()  # Clear previous response for streaming
         self._raw_ai_response = ""  # Reset raw response accumulator
         self.ai_generation_thread = AIGenerationThread(
-            ai_client=self.ai_client,
-            prompt=user_prompt,
-            system_prompt=system_prompt
+            agent=self.agent,
+            prompt=None,  # Not used when using agent method
+            use_agent_method=self.agent.process_ocr_text,
+            ocr_text=text,
+            mode="ocr"
         )
         self.ai_generation_thread.streaming.connect(self._on_ai_streaming)
         self.ai_generation_thread.finished.connect(self._on_ai_response)
         self.ai_generation_thread.error.connect(self._on_ai_error)
         self.ai_generation_thread.start()
 
-    def _process_custom_prompt(self, prompt: str, system_prompt: str = None):
+    def process_screenshot_inquiry(self, ocr_text: str, user_question: str):
         """
-        Process a custom prompt with AI (used by screenshot handler)
+        Process screenshot inquiry using Agent
 
         Args:
-            prompt: Custom user prompt
-            system_prompt: Optional system prompt (defaults to language tutor prompt)
+            ocr_text: Text extracted from screenshot
+            user_question: User's question about the screenshot
         """
-        if not prompt.strip():
+        if not ocr_text.strip() or not user_question.strip():
             return
 
         # Don't start a new request if one is already running
@@ -293,23 +299,21 @@ class MainWindow(QMainWindow):
             Logger.warning("AI generation already in progress, skipping new request")
             return
 
-        # Use default system prompt if none provided
-        if not system_prompt:
-            system_prompt = LanguageTutorPrompts.get_system_prompt()
-
         # Update UI
-        provider_name = getattr(self.ai_client, 'provider', 'AI')
-        self.lbl_status.setText(f"AI: Processing screenshot request...")
+        provider_name = getattr(self.agent.ai_client, 'provider', 'AI') if self.agent.ai_client else 'AI'
+        self.lbl_status.setText(f"AI: Processing screenshot inquiry...")
         self.txt_ai_response.setPlainText("Waiting for AI response...")
 
-        # Create and start the AI generation thread
+        # Create and start the AI generation thread using Agent's process_screenshot_inquiry
         self.lbl_status.setText(f"AI: {provider_name} is thinking...")
         self.txt_ai_response.clear()
         self._raw_ai_response = ""
         self.ai_generation_thread = AIGenerationThread(
-            ai_client=self.ai_client,
-            prompt=prompt,
-            system_prompt=system_prompt
+            agent=self.agent,
+            prompt=None,
+            use_agent_method=self.agent.process_screenshot_inquiry,
+            ocr_text=ocr_text,
+            user_question=user_question
         )
         self.ai_generation_thread.streaming.connect(self._on_ai_streaming)
         self.ai_generation_thread.finished.connect(self._on_ai_response)
@@ -331,7 +335,7 @@ class MainWindow(QMainWindow):
 
         # Update status with current length (of clean text)
         current_len = len(clean_text)
-        provider_name = getattr(self.ai_client, 'provider', 'AI')
+        provider_name = getattr(self.agent.ai_client, 'provider', 'AI') if self.agent.ai_client else 'AI'
         self.lbl_status.setText(f"AI: {provider_name} generating... ({current_len} chars)")
 
     def _on_ai_response(self, ai_response: str):

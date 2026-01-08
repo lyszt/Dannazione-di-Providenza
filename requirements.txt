@@ -17,6 +17,7 @@ opencv-python
 Pillow
 numpy
 
+
 # Screen Capture
 mss
 pyautogui

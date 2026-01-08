@@ -2,6 +2,11 @@
  * Dannazione di Providenza - Content Script
  */
 
+import DannazioneAPI from '../dannazione/index.js';
+import { BASE_URL } from '../config/index.js';
+
+const api = new DannazioneAPI(BASE_URL);
+
 console.log('[Dannazione] Content script loaded on', window.location.href);
 
 let overlayEnabled = true;
@@ -66,6 +71,13 @@ async function handleTextSelection(event) {
   }
 
   if (isTranslating) return;
+
+  // Send selection to backend
+  try {
+    await api.sendSelection(selectedText);
+  } catch (error) {
+    console.error('[Dannazione] Failed to send selection:', error);
+  }
 
   // Get selection coordinates
   const selection = window.getSelection();

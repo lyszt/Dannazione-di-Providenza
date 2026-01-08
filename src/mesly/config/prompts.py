@@ -28,7 +28,7 @@ When explaining:
 
 Briefly: What language is this? Translate it to English. Mention one interesting point if relevant. Keep it short - I'm listening."""
 
-    # OCR context prompt
+    # OCR agent prompt
     OCR_CONTEXT_PROMPT = """OCR text (may have errors):
 
 {text}
@@ -58,7 +58,7 @@ Briefly: Identify language, translate to English, fix obvious errors. One or two
     5. **Usage Notes**: When/how this phrase is typically used
     6. **Cultural Context**: Any relevant cultural information
     
-    This is from a game/application, so context may be informal or specialized."""
+    This is from a game/application, so agent may be informal or specialized."""
 
     # Vocabulary extraction prompt
     VOCABULARY_PROMPT = """Extract and explain vocabulary from this text:
@@ -100,7 +100,7 @@ Please explain:
 4. Any game-specific or cultural references
 5. Key vocabulary for gaming contexts
 
-Help me understand both the meaning and the context."""
+Help me understand both the meaning and the agent."""
 
     @staticmethod
     def get_prompt(prompt_type: str, text: str) -> str:

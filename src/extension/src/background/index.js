@@ -72,7 +72,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     } catch (error) {
       // Silently ignore pages that can't be scripted
       if (!error.message.includes('ExtensionsSettings policy')) {
-        console.error('[Dannazione] Error getting page context:', error);
+        console.error('[Dannazione] Error getting page agent:', error);
       }
     }
   }
