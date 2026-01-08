@@ -3,9 +3,9 @@
  */
 
 import DannazioneAPI from '../dannazione/index.js';
-import { BASE_URL } from '../config/index.js';
+import config from '../config/index.js';
 
-const api = new DannazioneAPI(BASE_URL);
+const api = new DannazioneAPI(config.api.baseUrl);
 
 console.log('[Dannazione] Content script loaded on', window.location.href);
 

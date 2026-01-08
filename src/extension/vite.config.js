@@ -89,8 +89,10 @@ export default defineConfig({
       },
 
       output: {
+        // Use ES format - background supports it, content will be bundled as single file
         format: 'es',
         inlineDynamicImports: true,
+        manualChunks: undefined,  // Disable all code splitting
 
         entryFileNames: (chunkInfo) => {
           if (chunkInfo.name === 'background') return 'background.js';
@@ -99,15 +101,10 @@ export default defineConfig({
           return '[name].js';
         },
 
-        chunkFileNames: '[name].js',
-
-        assetFileNames: (assetInfo) => {
-          const name = assetInfo.name || '';
-          if (name.endsWith('.css')) return '[name].css';
+        assetFileNames: (chunkInfo) => {
+          if (chunkInfo.name === 'popup.css') return 'popup.css';
           return '[name].[ext]';
         },
-
-        manualChunks: undefined,
       },
     },
 
