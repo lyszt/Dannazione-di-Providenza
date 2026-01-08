@@ -117,7 +117,7 @@ class ConfigTemplate:
         return yaml.dump(config_dict, default_flow_style=False, sort_keys=False)
 
     @classmethod
-    def get_config(cls, filepath: str = "index/index.yaml") -> 'ConfigTemplate':
+    def get_config(cls, filepath: str = "config/config.yaml") -> 'ConfigTemplate':
         """
         Get configuration instance - automatically loads or creates index file
         Uses singleton pattern to ensure index is only loaded once per filepath

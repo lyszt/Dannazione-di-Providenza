@@ -1,3 +1,4 @@
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -112,6 +113,12 @@ class MeslyApp:
 
     def _capture_screenshot(self):
         """Capture screenshot (runs in main thread)"""
+        screenshot_path = Path(__file__).resolve().parent.parent.parent / "data" / "screenshots"
+        screenshot_path.mkdir(parents=True, exist_ok=True)
+
+        for item in screenshot_path.iterdir():
+            if item.is_file():
+                item.unlink()
 
         # Minimize window to avoid capturing it
         was_minimized = self.window.isMinimized()
