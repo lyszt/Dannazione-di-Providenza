@@ -4,8 +4,10 @@ from transformers import pipeline
 
 from src.mesly.agent.browser_context import BrowserContext
 from src.mesly.agent.memory.short_term import ShortTermMemory
+from src.mesly.agent.memory.long_term import LongTermMemory
 from src.mesly.agent.self_identity import SelfIdentity
 from src.mesly.config import ConfigTemplate
+from src.mesly.config.gpuconfig import GPUConfig
 from src.mesly.config.prompts import LanguageTutorPrompts, get_tutor_prompt
 from src.mesly.llm import LLMClientManager, LocalLLMClientManager
 from src.mesly.utils import Logger
@@ -15,6 +17,16 @@ class KnowledgeBase:
     def __init__(self, config):
         self.browser_context: BrowserContext = BrowserContext()
         self.config = config
+
+    def to_dict(self) -> dict:
+        """Convert knowledge base to JSON-serializable dict"""
+        return {
+            "browser_context": {
+                "recent_pages": len(self.browser_context.get_context()),
+                "selected_text": self.browser_context.selected_text[:100] if self.browser_context.selected_text else None
+            },
+            "config_provider": self.config.ai.preferred_provider if self.config else None
+        }
 
 
 class Agent:
@@ -26,13 +38,33 @@ class Agent:
             config: Configuration template containing AI provider settings
         """
         self.config = config
+
+        # Initialize GPU configuration - check compatibility on boot
+        self.gpu_config = GPUConfig()
+
         self.knowledge_base = KnowledgeBase(config)
         self.profile = SelfIdentity()
         self.profile.available_tools = []
-        self.profile.active_context = json.dumps(self.knowledge_base.__dict__)
+        self.profile.active_context = json.dumps(self.knowledge_base.to_dict())
         self.short_term_memory = ShortTermMemory()
+        
+        # Initialize long-term memory
+        try:
+            self.long_term_memory = LongTermMemory()
+            Logger.info("Agent: Long-term memory initialized")
+        except Exception as e:
+            Logger.error(f"Agent: Failed to initialize long-term memory: {e}")
+            self.long_term_memory = None
         self.ai_client: Optional[Union[LLMClientManager, LocalLLMClientManager]] = None
-        self.sentiment_analyzer = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
+
+        # Initialize sentiment analyzer with correct device
+        device_id = 0 if self.gpu_config.is_gpu_available() else -1  # -1 means CPU for transformers
+        self.sentiment_analyzer = pipeline(
+            "sentiment-analysis",
+            model="distilbert-base-uncased-finetuned-sst-2-english",
+            device=device_id
+        )
+
         # Initialize AI client based on preferred provider
         self._initialize_ai_client()
 
@@ -90,7 +122,19 @@ class Agent:
             return None
 
         try:
-            return self.ai_client.generate(prompt, system_prompt, stream_callback)
+            response = self.ai_client.generate(prompt, system_prompt, stream_callback)
+            # Save conversation to long-term memory
+            if response and self.long_term_memory:
+                try:
+                    self.long_term_memory.conversations.save(
+                    user_input=prompt,
+                    ai_response=response,
+                    context_type="simple"
+                    )
+                    Logger.debug("Agent: Conversation saved to long-term memory")
+                except Exception as e:
+                    Logger.error(f"Agent: Failed to save conversation to long-term memory: {e}")
+            return response
         except Exception as e:
             Logger.error(f"Agent: Generation failed: {e}")
             return None
@@ -348,4 +392,42 @@ class Agent:
             elif mem_type == 'user_question':
                 Logger.debug(f"    Q: {content.get('question', '')[:60]}...")
 
+    def close(self):
+        """Close agent resources including long-term memory database connection"""
+        if self.long_term_memory:
+            try:
+                self.long_term_memory.close()
+                Logger.info("Agent: Long-term memory closed")
+            except Exception as e:
+                Logger.error(f"Agent: Failed to close long-term memory: {e}")
 
+    def cleanup_old_memories(self, conversation_days: int = 30, browser_days: int = 7):
+        """
+        Cleanup old data from long-term memory
+
+        Args:
+            conversation_days: Delete conversations older than this many days
+            browser_days: Delete browser history older than this many days
+        """
+        if not self.long_term_memory:
+            Logger.warning("Agent: Cannot cleanup memories, long-term memory not initialized")
+            return
+
+        try:
+            conv_deleted = self.long_term_memory.conversations.delete_old(days=conversation_days)
+            browser_deleted = self.long_term_memory.browser_history.delete_old(days=browser_days)
+
+            Logger.info(f"Agent: Cleaned up {conv_deleted} old conversations and {browser_deleted} browser history entries")
+        except Exception as e:
+            Logger.error(f"Agent: Failed to cleanup old memories: {e}")
+
+    def get_memory_stats(self) -> Optional[Dict]:
+        """Get statistics about the agent's long-term memory"""
+        if not self.long_term_memory:
+            return None
+
+        try:
+            return self.long_term_memory.get_stats()
+        except Exception as e:
+            Logger.error(f"Agent: Failed to get memory stats: {e}")
+            return None

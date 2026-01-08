@@ -71,7 +71,26 @@ class MeslyApp:
         self.server.start()
         Logger.info("FastAPI server started on http://127.0.0.1:8000")
 
+        # Cleanup on exit
+        app.aboutToQuit.connect(self._cleanup)
+
         sys.exit(app.exec())
+
+    def _cleanup(self):
+        """Cleanup resources before application exit"""
+        Logger.info("Cleaning up resources...")
+
+        # Stop hotkey manager
+        if self.hotkey_manager:
+            self.hotkey_manager.stop()
+            Logger.info("Hotkey manager stopped")
+
+        # Close agent and long-term memory
+        if self.agent:
+            self.agent.close()
+            Logger.info("Agent resources closed")
+
+        Logger.info("Cleanup complete")
 
     def _register_hotkeys(self):
         """Register Ctrl+Alt+S for screenshot"""
@@ -156,6 +175,8 @@ class MeslyApp:
                 easygui.msgbox(f"Error processing screenshot: {e}", "Mesly - Error")
         else:
             Logger.error("Failed to capture screenshot")
+
+
 
 
 

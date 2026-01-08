@@ -5,7 +5,6 @@
 
 import config from '../config/index.js';
 import DannazioneAPI from '../dannazione/index.js';
-import { translate } from '@vitalets/google-translate-api';
 
 const API_BASE_URL = config.api.baseUrl;
 
@@ -91,12 +90,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const fromLang = settings.fromLang || 'auto';
         const toLang = settings.toLang || 'en';
 
-        const result = await translate(message.text, {
-          from: fromLang === 'auto' ? undefined : fromLang,
-          to: toLang
+        const response = await fetch(`${API_BASE_URL}/translate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: message.text,
+            from_lang: fromLang,
+            to_lang: toLang
+          })
         });
 
-        sendResponse({ translation: result.text });
+        if (response.ok) {
+          const data = await response.json();
+          sendResponse({ translation: data.translation });
+        } else {
+          throw new Error(`Server error: ${response.status}`);
+        }
       } catch (error) {
         console.error('[Dannazione] Translation failed:', error);
         sendResponse({ translation: 'Translation failed: ' + error.message });
@@ -111,8 +120,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 console.log('[Dannazione] Background script initialized');
-
-
-
-
 

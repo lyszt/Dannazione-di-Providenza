@@ -16,7 +16,8 @@ llama-cpp-python
 opencv-python
 Pillow
 numpy
-
+peewee
+transformers
 
 # Screen Capture
 mss
