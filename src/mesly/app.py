@@ -22,7 +22,7 @@ class HotkeySignals(QObject):
     """Qt signals for thread-safe hotkey handling"""
     screenshot_requested = pyqtSignal()
 
-def get_ai_client(index: ConfigTemplate):
+def get_ai_client(config: ConfigTemplate):
     ai_client = None
     preferred_provider = config.ai.preferred_provider
 
@@ -33,7 +33,7 @@ def get_ai_client(index: ConfigTemplate):
             if ai_client.is_available():
                 Logger.info(f"{preferred_provider.capitalize()} client initialized successfully")
             else:
-                Logger.warning(f"{preferred_provider} client not available, check index and API keys")
+                Logger.warning(f"{preferred_provider} client not available, check config and API keys")
         except Exception as e:
             Logger.error(f"Failed to initialize {preferred_provider} client: {e}")
 
@@ -44,7 +44,7 @@ def get_ai_client(index: ConfigTemplate):
             if ai_client.is_available():
                 Logger.info(f"{preferred_provider.capitalize()} client initialized successfully")
             else:
-                Logger.warning(f"{preferred_provider} client not available, check index")
+                Logger.warning(f"{preferred_provider} client not available, check config")
         except Exception as e:
             Logger.error(f"Failed to initialize {preferred_provider} client: {e}")
     return ai_client

@@ -383,7 +383,7 @@ class MainWindow(QMainWindow):
         try:
             Logger.info("Using Google Cloud TTS with gemini-2.5-flash-tts for natural voice...")
 
-            # Get API key from index
+            # Get API key from config
             config = ConfigTemplate.get_config()
             api_key = None
             for client in config.ai.clients:

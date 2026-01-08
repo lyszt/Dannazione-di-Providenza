@@ -56,7 +56,7 @@ class ConfigTemplate:
         with open(self.filepath, 'r') as f:
             data = yaml.safe_load(f)
 
-        # Reconstruct AI index with clients list
+        # Reconstruct AI config with clients list
         ai_data = data.get("ai", {})
         clients_data = ai_data.get("clients", [])
         local_clients_data = ai_data.get("local_clients", [])
@@ -99,7 +99,7 @@ class ConfigTemplate:
         Logger.info(f"Configuration saved to {self.filepath}")
 
     def to_yaml(self) -> str:
-        """Convert index to YAML string"""
+        """Convert config to YAML string"""
         config_dict = {
             "ocr": self.ocr.__dict__,
             "translation": self.translation.__dict__,

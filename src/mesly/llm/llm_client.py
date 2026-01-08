@@ -77,7 +77,7 @@ class LLMClientManager:
             raise AIProviderNotInstalledError("openai not installed. Install with: pip install openai")
 
         if not self.config.api_key:
-            raise AIAPIKeyMissingError("No API key provided for OpenAI client. Set api_key in index.")
+            raise AIAPIKeyMissingError("No API key provided for OpenAI client. Set api_key in config.")
 
         try:
             client = openai.OpenAI(api_key=self.config.api_key)

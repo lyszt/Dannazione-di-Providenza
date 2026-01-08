@@ -76,7 +76,7 @@ class LocalLLMClientManager:
             raise AIProviderNotInstalledError("llama-cpp-python not installed. Install with: pip install llama-cpp-python")
 
         if not self.config.model_path:
-            raise AIConfigurationError("model_path is required for llamacpp provider. Set model_path in index.")
+            raise AIConfigurationError("model_path is required for llamacpp provider. Set model_path in config.")
 
         try:
             client = Llama(
