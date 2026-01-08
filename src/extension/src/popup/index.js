@@ -1,5 +1,4 @@
 import { LitElement, css, html } from 'lit';
-import { translate } from '@vitalets/google-translate-api';
 import config from '../config/index.js';
 
 /**
