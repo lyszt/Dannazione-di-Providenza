@@ -24,7 +24,7 @@ class ConfigTemplate:
 
     _instances: Dict[str, 'ConfigTemplate'] = {}
 
-    def __init__(self, filepath: str = "index/index.yaml"):
+    def __init__(self, filepath: str = "config/config.yaml"):
         """
         Initialize configuration, loading from file or creating default
 
