@@ -2,8 +2,10 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import uvicorn
 from threading import Thread
-from deep_translator import GoogleTranslator
+from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 from ..utils import Logger
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 
 class TranslateRequest(BaseModel):
@@ -20,6 +22,22 @@ class Server:
         self.config = config
         self.screen_capture = screen_capture
         self.app = FastAPI(title="Dannazione di Providenza API")
+
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
+        model_name = "tencent/HY-MT1.5-7B"
+        try:
+            self.translation_pipeline = pipeline("translation", model=model_name)
+        except Exception as e:
+            Logger.error(f"Failed to load translation model '{model_name}': {e}")
+            self.translation_pipeline = None
+
         self._setup_routes()
         self._thread = None
 
@@ -52,23 +70,30 @@ class Server:
             # Update selected text in browser context
             if self.agent and "text" in data:
                 self.agent.knowledge_base.browser_context.selected_text = data["text"]
-            return {"status": "selection updated"}
+            return JSONResponse(content={"status": "selection updated"}, media_type="application/json")
 
         @self.app.post("/translate")
         async def translate_text(request: TranslateRequest):
-            """Translate text using deep-translator"""
+            """Translate text using a local Hugging Face model"""
+            if not self.translation_pipeline:
+                return {
+                    "translation": "[Translation error: Translation model not loaded]",
+                    "error": "Model not available"
+                }
+
             try:
-                source = request.from_lang if request.from_lang != "auto" else "auto"
+                source = request.from_lang if request.from_lang != "auto" else "en"
+                target = request.to_lang
 
-                translator = GoogleTranslator(source=source, target=request.to_lang)
-                translated = translator.translate(request.text)
+                # Perform translation using the local model
+                translated = self.translation_pipeline(request.text, src_lang=source, tgt_lang=target)
 
-                Logger.info(f"Translation: '{request.text[:50]}...' -> '{translated[:50]}...'")
+                Logger.info(f"Translation: '{request.text[:50]}...' -> '{translated[0]['translation_text'][:50]}...'")
 
                 return {
-                    "translation": translated,
+                    "translation": translated[0]['translation_text'],
                     "from": source,
-                    "to": request.to_lang
+                    "to": target
                 }
             except Exception as e:
                 Logger.error(f"Translation failed: {e}")
