@@ -195,7 +195,9 @@ class Agent:
             formatted += f"\n[Page {i}]\n"
             formatted += f"Title: {ctx.get('title', 'Unknown')}\n"
             formatted += f"URL: {ctx.get('url', 'Unknown')}\n"
-            formatted += f"Content: {ctx.get('body', '')[:500]}...\n"
+            body_content = ctx.get('body', '')
+            # Include up to 3000 characters to capture full news articles
+            formatted += f"Content: {body_content[:3000]}{'...' if len(body_content) > 3000 else ''}\n"
 
         return formatted
 
@@ -289,6 +291,12 @@ class Agent:
         # Build enriched prompt
         enriched_prompt = ""
 
+        # Add conversation history from short-term memory
+        memory_summary = self.short_term_memory.get_context_summary()
+        if memory_summary and memory_summary != "No recent memories.":
+            enriched_prompt += f"Conversation history:\n{memory_summary}\n\n"
+            Logger.debug("Agent: Including conversation history in context")
+
         # Add browser context if requested
         if use_browser_context and self.knowledge_base.browser_context.get_context():
             enriched_prompt += self._format_browser_context() + "\n\n"
@@ -302,16 +310,20 @@ class Agent:
 
         Logger.info(f"Agent: Processing user question: '{question[:50]}...' (sentiment={sentiment['label']})")
 
-        # Add to short-term memory
+        # Generate response
+        response = self.generate(enriched_prompt, system_prompt, stream_callback)
+
+        # Add to short-term memory with response
         self.short_term_memory.add_item({
             "type": "user_question",
             "question": question,
+            "response": response[:200] if response else None,
             "has_context": context_text is not None,
             "sentiment": sentiment,
             "timestamp": "now"
         })
 
-        return self.generate(enriched_prompt, system_prompt, stream_callback)
+        return response
 
     def process_screenshot_inquiry(self, ocr_text: str, user_question: str,
                                    system_prompt: Optional[str] = None,

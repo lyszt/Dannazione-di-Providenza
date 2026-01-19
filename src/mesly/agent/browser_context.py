@@ -13,10 +13,22 @@ class BrowserContext:
 
     def push(self, url: str, title: str, body: str) -> None:
         try:
-            clean_body = BeautifulSoup(body, "lxml").get_text(strip=True)
+            soup = BeautifulSoup(body, "lxml")
         except FeatureNotFound:
             Logger.error(traceback.format_exc())
-            clean_body = BeautifulSoup(body, "html.parser").get_text(strip=True)
+            soup = BeautifulSoup(body, "html.parser")
+
+        # Remove script, style, and other non-readable elements
+        for element in soup(['script', 'style', 'noscript', 'iframe', 'svg', 'path', 'nav', 'header', 'footer']):
+            element.decompose()
+
+        # Extract all readable text
+        clean_body = soup.get_text(strip=True, separator=' ')
+
+        # Clean up multiple spaces and newlines
+        clean_body = ' '.join(clean_body.split())
+
+        Logger.debug(f"Browser context: Added page '{title}' with {len(clean_body)} chars of content")
 
         self.context.append({
             "url": url,

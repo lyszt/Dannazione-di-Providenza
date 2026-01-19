@@ -53,7 +53,7 @@ class Server:
         self.translation_pipeline = None
         self.translation_model_loading = True
         self.translation_model_error = None
-        self.translation_requests = defaultdict(list)  # Track requests per IP
+        self.translation_cache = {}  # Cache translations
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._initialize_translation_model()
 
@@ -109,26 +109,24 @@ class Server:
         @self.app.post("/translate")
         def translate_text(request: TranslateRequest):
             """Translate text using Helsinki-NLP translation model"""
-            # Rate limiting: 1 request per 10 seconds per text
+            # Rate limiting with caching: return cached translation for duplicate requests
             current_time = time.time()
-            request_key = request.text[:50]  # Use first 50 chars as key
+            cache_key = f"{request.text[:100]}_{request.from_lang}_{request.to_lang}"
 
-            # Clean old requests (older than 10 seconds)
-            self.translation_requests[request_key] = [
-                t for t in self.translation_requests[request_key]
-                if current_time - t < 10
-            ]
+            self.translation_cache = {
+                k: v for k, v in self.translation_cache.items()
+                if current_time - v['timestamp'] < 10
+            }
 
-            # Check rate limit
-            if len(self.translation_requests[request_key]) > 0:
-                wait_time = 10 - (current_time - self.translation_requests[request_key][0])
+            if cache_key in self.translation_cache:
+                cached = self.translation_cache[cache_key]
+                Logger.info(f"Returning cached translation for: '{request.text[:50]}...'")
                 return {
-                    "translation": f"[Rate limited. Please wait {wait_time:.1f}s]",
-                    "error": "Rate limit exceeded"
+                    "translation": cached['translation'],
+                    "from": request.from_lang,
+                    "to": request.to_lang,
+                    "cached": True
                 }
-
-            # Add current request
-            self.translation_requests[request_key].append(current_time)
 
             if self.translation_model_loading:
                 return {
@@ -152,6 +150,12 @@ class Server:
                 # Perform translation
                 result = self.translation_pipeline(request.text)
                 translation = result[0]['translation_text']
+
+                # Cache the result
+                self.translation_cache[cache_key] = {
+                    'translation': translation,
+                    'timestamp': current_time
+                }
 
                 Logger.info(f"Translation: '{request.text[:50]}...' -> '{translation[:50]}...'")
 
