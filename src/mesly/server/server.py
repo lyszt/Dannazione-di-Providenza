@@ -2,10 +2,11 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import uvicorn
 from threading import Thread
-from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import pipeline
 from ..utils import Logger
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from concurrent.futures import ThreadPoolExecutor
 
 
 class TranslateRequest(BaseModel):
@@ -31,15 +32,23 @@ class Server:
             allow_headers=["*"],
         )
 
-        model_name = "tencent/HY-MT1.5-7B"
-        try:
-            self.translation_pipeline = pipeline("translation", model=model_name)
-        except Exception as e:
-            Logger.error(f"Failed to load translation model '{model_name}': {e}")
-            self.translation_pipeline = None
+        self.translation_pipeline = None
+        self._executor = ThreadPoolExecutor(max_workers=1)
+        self._initialize_translation_model()
 
         self._setup_routes()
         self._thread = None
+
+    def _initialize_translation_model(self):
+        def load_model():
+            model_name = "tencent/HY-MT1.5-1.8B"
+            try:
+                self.translation_pipeline = pipeline("translation", model=model_name)
+                Logger.info(f"Translation model '{model_name}' loaded successfully.")
+            except Exception as e:
+                Logger.error(f"Failed to load translation model '{model_name}': {e}")
+
+        self._executor.submit(load_model)
 
     def _setup_routes(self):
         @self.app.get("/")
@@ -73,7 +82,7 @@ class Server:
             return JSONResponse(content={"status": "selection updated"}, media_type="application/json")
 
         @self.app.post("/translate")
-        async def translate_text(request: TranslateRequest):
+        def translate_text(request: TranslateRequest):
             """Translate text using a local Hugging Face model"""
             if not self.translation_pipeline:
                 return {
