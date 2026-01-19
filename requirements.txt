@@ -11,6 +11,8 @@ openai
 # AI/LLM Providers - Local
 ollama
 llama-cpp-python
+accelerate
+sentencepiece
 
 # Image Processing & Computer Vision
 opencv-python
@@ -58,3 +60,4 @@ loguru
 # Testing
 pytest
 pytest-cov
+lxml

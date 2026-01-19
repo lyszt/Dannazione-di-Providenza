@@ -1,4 +1,3 @@
-
 class DannazioneAPI {
   constructor(base_url) {
     this.base_url = base_url;
@@ -11,12 +10,20 @@ class DannazioneAPI {
 
   async sendContext(contextData) {
     try {
+      // Ensure the data structure matches the server's ContextRequest model
+      const payload = {
+        url: contextData.url,
+        title: contextData.title,
+        html: contextData.html || contextData.body || '',
+        type: contextData.type || 'default'
+      };
+
       const response = await fetch(`${this.base_url}/context`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(contextData),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -27,7 +34,7 @@ class DannazioneAPI {
       console.log('[Dannazione] Context sent successfully:', data);
       return data;
     } catch (error) {
-      console.error('[Dannazione] Failed to send agent:', error);
+      console.error('[Dannazione] Failed to send context:', error);
       throw error;
     }
   }
@@ -54,7 +61,30 @@ class DannazioneAPI {
       throw error;
     }
   }
+
+  async sendChatMessage(prompt, body = {}) {
+    try {
+      const response = await fetch(`${this.base_url}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, body }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('[Dannazione] Chat message sent successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('[Dannazione] Failed to send chat message:', error);
+      throw error;
+    }
+  }
 }
 
 export default DannazioneAPI;
-

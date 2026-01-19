@@ -18,6 +18,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+ai_response.mp3
+ai_response.ogg
 
 # Virtual Environment
 venv/

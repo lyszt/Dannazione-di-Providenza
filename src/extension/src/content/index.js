@@ -12,6 +12,8 @@ console.log('[Dannazione] Content script loaded on', window.location.href);
 let overlayEnabled = true;
 let translationOverlay = null;
 let isTranslating = false;
+let chatOverlay = null;
+let isChatOpen = false;
 
 // Load overlay state from storage
 chrome.storage.local.get('overlayEnabled').then((result) => {
@@ -170,6 +172,181 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// Chat functionality
+let chatMessages = [];
+
+function createChatOverlay() {
+  if (chatOverlay) return;
+
+  chatOverlay = document.createElement('div');
+  chatOverlay.className = 'dannazione-chat-overlay';
+  chatOverlay.innerHTML = `
+    <div class="dannazione-chat-header">
+      <div class="chat-header-content">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Chat Assistant</span>
+      </div>
+      <button class="dannazione-chat-close">×</button>
+    </div>
+    <div class="dannazione-chat-messages" id="dannazione-chat-messages">
+      <div class="dannazione-chat-empty">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p>Start a conversation</p>
+      </div>
+    </div>
+    <div class="dannazione-chat-input-container">
+      <input
+        type="text"
+        class="dannazione-chat-input"
+        placeholder="Type your message..."
+        id="dannazione-chat-input"
+      />
+      <button class="dannazione-chat-send" id="dannazione-chat-send">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(chatOverlay);
+
+  // Add event listeners
+  const closeBtn = chatOverlay.querySelector('.dannazione-chat-close');
+  const sendBtn = chatOverlay.querySelector('#dannazione-chat-send');
+  const input = chatOverlay.querySelector('#dannazione-chat-input');
+
+  closeBtn.addEventListener('click', toggleChat);
+  sendBtn.addEventListener('click', () => sendChatMessage(input.value));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage(input.value);
+    }
+  });
+}
+
+function toggleChat() {
+  isChatOpen = !isChatOpen;
+  const toggleBtn = document.querySelector('.dannazione-chat-toggle');
+
+  if (isChatOpen) {
+    if (!chatOverlay) {
+      createChatOverlay();
+    }
+    chatOverlay.classList.add('open');
+    if (toggleBtn) toggleBtn.classList.add('hidden');
+  } else {
+    if (chatOverlay) {
+      chatOverlay.classList.remove('open');
+    }
+    if (toggleBtn) toggleBtn.classList.remove('hidden');
+  }
+}
+
+async function sendChatMessage(message) {
+  if (!message.trim()) return;
+
+  const input = chatOverlay.querySelector('#dannazione-chat-input');
+  const messagesContainer = chatOverlay.querySelector('#dannazione-chat-messages');
+
+  // Clear input
+  input.value = '';
+  input.disabled = true;
+
+  // Remove empty state if exists
+  const emptyState = messagesContainer.querySelector('.dannazione-chat-empty');
+  if (emptyState) {
+    emptyState.remove();
+  }
+
+  // Add user message
+  const userMsg = document.createElement('div');
+  userMsg.className = 'dannazione-chat-message user';
+  userMsg.innerHTML = `<div class="message-content">${escapeHtml(message)}</div>`;
+  messagesContainer.appendChild(userMsg);
+
+  // Add loading bot message
+  const botMsg = document.createElement('div');
+  botMsg.className = 'dannazione-chat-message bot loading';
+  botMsg.innerHTML = `
+    <div class="message-avatar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="message-content">
+      <div class="typing-indicator">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  `;
+  messagesContainer.appendChild(botMsg);
+
+  // Scroll to bottom
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+  try {
+    const response = await api.sendChatMessage(message, {});
+    const responseText = response.reply || response.message || 'No response';
+
+    // Update bot message with response
+    botMsg.className = 'dannazione-chat-message bot';
+    botMsg.innerHTML = `
+      <div class="message-avatar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="message-content">${escapeHtml(responseText)}</div>
+    `;
+  } catch (error) {
+    console.error('[Dannazione] Failed to send chat message:', error);
+    botMsg.className = 'dannazione-chat-message bot error';
+    botMsg.innerHTML = `
+      <div class="message-avatar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="message-content">Failed to get response. Please try again.</div>
+    `;
+  } finally {
+    input.disabled = false;
+    input.focus();
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+}
+
+// Create chat toggle button
+function createChatToggleButton() {
+  const toggleBtn = document.createElement('button');
+  toggleBtn.className = 'dannazione-chat-toggle';
+  toggleBtn.innerHTML = `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `;
+  toggleBtn.addEventListener('click', toggleChat);
+  document.body.appendChild(toggleBtn);
+}
+
+// Initialize chat
+createChatToggleButton();
+
 // Inject overlay styles
 const style = document.createElement('style');
 style.textContent = `
@@ -237,6 +414,327 @@ style.textContent = `
     color: #e0e0e0;
     font-size: 14px;
     line-height: 1.5;
+  }
+
+  /* Chat Toggle Button */
+  .dannazione-chat-toggle {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    z-index: 2147483646;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dannazione-chat-toggle:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.5);
+  }
+
+  .dannazione-chat-toggle.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.8);
+  }
+
+  /* Chat Overlay */
+  .dannazione-chat-overlay {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 380px;
+    height: 550px;
+    background: rgba(26, 26, 26, 0.98);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    z-index: 2147483647;
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+  }
+
+  .dannazione-chat-overlay.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: all;
+  }
+
+  .dannazione-chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+    border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: 16px 16px 0 0;
+  }
+
+  .chat-header-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #e0e0e0;
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .chat-header-content svg {
+    color: #667eea;
+  }
+
+  .dannazione-chat-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .dannazione-chat-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .dannazione-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+  }
+
+  .dannazione-chat-messages::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .dannazione-chat-messages::-webkit-scrollbar-track {
+    background: rgba(37, 37, 37, 0.5);
+  }
+
+  .dannazione-chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(74, 74, 74, 0.8);
+    border-radius: 3px;
+  }
+
+  .dannazione-chat-messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(90, 90, 90, 0.8);
+  }
+
+  .dannazione-chat-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #6b7280;
+    gap: 12px;
+  }
+
+  .dannazione-chat-empty svg {
+    opacity: 0.5;
+  }
+
+  .dannazione-chat-empty p {
+    font-size: 14px;
+    margin: 0;
+  }
+
+  .dannazione-chat-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    max-width: 85%;
+    animation: slideInChat 0.2s ease-out;
+  }
+
+  @keyframes slideInChat {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .dannazione-chat-message.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+  }
+
+  .dannazione-chat-message.bot {
+    align-self: flex-start;
+  }
+
+  .dannazione-chat-message .message-avatar {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+  }
+
+  .dannazione-chat-message .message-content {
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    color: #e0e0e0;
+  }
+
+  .dannazione-chat-message.user .message-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .dannazione-chat-message.bot .message-content {
+    background: rgba(58, 58, 58, 0.9);
+    color: #d1d5db;
+    border-bottom-left-radius: 4px;
+  }
+
+  .dannazione-chat-message.bot.error .message-content {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+  }
+
+  .dannazione-chat-message.bot.loading .message-content {
+    padding: 14px;
+  }
+
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .typing-indicator span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #667eea;
+    animation: typingBounce 1.4s infinite;
+  }
+
+  .typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes typingBounce {
+    0%, 60%, 100% {
+      opacity: 0.3;
+      transform: translateY(0);
+    }
+    30% {
+      opacity: 1;
+      transform: translateY(-8px);
+    }
+  }
+
+  .dannazione-chat-input-container {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(37, 37, 37, 0.8);
+    border-top: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 0 0 16px 16px;
+  }
+
+  .dannazione-chat-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid rgba(74, 74, 74, 0.8);
+    border-radius: 8px;
+    background: rgba(45, 45, 45, 0.8);
+    color: #e0e0e0;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .dannazione-chat-input::placeholder {
+    color: #6b7280;
+  }
+
+  .dannazione-chat-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+  }
+
+  .dannazione-chat-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .dannazione-chat-send {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .dannazione-chat-send:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+
+  .dannazione-chat-send:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .dannazione-chat-send:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `;
 document.head.appendChild(style);

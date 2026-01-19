@@ -1,12 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
 from threading import Thread
-from transformers import pipeline
+from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 from ..utils import Logger
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from concurrent.futures import ThreadPoolExecutor
+import time
+from collections import defaultdict
 
 
 class TranslateRequest(BaseModel):
@@ -14,6 +16,22 @@ class TranslateRequest(BaseModel):
     from_lang: str = "auto"
     to_lang: str = "en"
 
+
+class PromptRequest(BaseModel):
+    prompt: str
+    body: dict = {}
+
+
+class ChatRequest(BaseModel):
+    prompt: str
+    body: dict = {}
+
+
+class ContextRequest(BaseModel):
+    url: str
+    title: str
+    html: str
+    type: str = "default"
 
 class Server:
     def __init__(self, host="127.0.0.1", port=8000, agent=None, config=None, screen_capture=None):
@@ -33,6 +51,9 @@ class Server:
         )
 
         self.translation_pipeline = None
+        self.translation_model_loading = True
+        self.translation_model_error = None
+        self.translation_requests = defaultdict(list)  # Track requests per IP
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._initialize_translation_model()
 
@@ -41,11 +62,15 @@ class Server:
 
     def _initialize_translation_model(self):
         def load_model():
-            model_name = "tencent/HY-MT1.5-1.8B"
+            model_name = "Helsinki-NLP/opus-mt-mul-en"
             try:
-                self.translation_pipeline = pipeline("translation", model=model_name)
+                Logger.info(f"Loading translation model '{model_name}'...")
+                self.translation_pipeline = pipeline("translation", model=model_name, device_map="auto")
+                self.translation_model_loading = False
                 Logger.info(f"Translation model '{model_name}' loaded successfully.")
             except Exception as e:
+                self.translation_model_loading = False
+                self.translation_model_error = str(e)
                 Logger.error(f"Failed to load translation model '{model_name}': {e}")
 
         self._executor.submit(load_model)
@@ -56,18 +81,18 @@ class Server:
             return {"message": "Dannazione di Providenza Server is running."}
 
         @self.app.post("/context")
-        async def context(url, title, html_body):
+        async def context(request: ContextRequest):
             # Push context to Agent's browser context
             if self.agent:
-                self.agent.knowledge_base.browser_context.push(url, title, html_body)
+                self.agent.knowledge_base.browser_context.push(request.url, request.title, request.html)
 
                 # Save to long-term memory
                 if self.agent.long_term_memory:
                     try:
                         self.agent.long_term_memory.browser_history.save(
-                            url=url,
-                            title=title,
-                            body=html_body
+                            url=request.url,
+                            title=request.title,
+                            body=request.html
                         )
                     except Exception as e:
                         Logger.error(f"Server: Failed to save browser history: {e}")
@@ -83,26 +108,57 @@ class Server:
 
         @self.app.post("/translate")
         def translate_text(request: TranslateRequest):
-            """Translate text using a local Hugging Face model"""
+            """Translate text using Helsinki-NLP translation model"""
+            # Rate limiting: 1 request per 10 seconds per text
+            current_time = time.time()
+            request_key = request.text[:50]  # Use first 50 chars as key
+
+            # Clean old requests (older than 10 seconds)
+            self.translation_requests[request_key] = [
+                t for t in self.translation_requests[request_key]
+                if current_time - t < 10
+            ]
+
+            # Check rate limit
+            if len(self.translation_requests[request_key]) > 0:
+                wait_time = 10 - (current_time - self.translation_requests[request_key][0])
+                return {
+                    "translation": f"[Rate limited. Please wait {wait_time:.1f}s]",
+                    "error": "Rate limit exceeded"
+                }
+
+            # Add current request
+            self.translation_requests[request_key].append(current_time)
+
+            if self.translation_model_loading:
+                return {
+                    "translation": "[Translation model is still loading... Please wait]",
+                    "error": "Model loading"
+                }
+
+            if self.translation_model_error:
+                return {
+                    "translation": f"[Translation model failed to load: {self.translation_model_error}]",
+                    "error": self.translation_model_error
+                }
+
             if not self.translation_pipeline:
                 return {
-                    "translation": "[Translation error: Translation model not loaded]",
+                    "translation": "[Translation error: Translation model not available]",
                     "error": "Model not available"
                 }
 
             try:
-                source = request.from_lang if request.from_lang != "auto" else "en"
-                target = request.to_lang
+                # Perform translation
+                result = self.translation_pipeline(request.text)
+                translation = result[0]['translation_text']
 
-                # Perform translation using the local model
-                translated = self.translation_pipeline(request.text, src_lang=source, tgt_lang=target)
-
-                Logger.info(f"Translation: '{request.text[:50]}...' -> '{translated[0]['translation_text'][:50]}...'")
+                Logger.info(f"Translation: '{request.text[:50]}...' -> '{translation[:50]}...'")
 
                 return {
-                    "translation": translated[0]['translation_text'],
-                    "from": source,
-                    "to": target
+                    "translation": translation,
+                    "from": request.from_lang,
+                    "to": request.to_lang
                 }
             except Exception as e:
                 Logger.error(f"Translation failed: {e}")
@@ -110,6 +166,39 @@ class Server:
                     "translation": f"[Translation error: {str(e)}]",
                     "error": str(e)
                 }
+
+        @self.app.post("/chat")
+        async def send_chat(request: ChatRequest):
+            try:
+                if not self.agent:
+                    return {"reply": "Agent not initialized", "status": "error"}
+
+                if not self.agent.is_ready():
+                    return {"reply": "AI client not available. Please check your configuration.", "status": "error"}
+
+                # Get context text from selected text if available
+                context_text = None
+                if hasattr(self.agent, 'knowledge_base') and hasattr(self.agent.knowledge_base, 'browser_context'):
+                    ctx = self.agent.knowledge_base.browser_context
+                    if ctx.selected_text:
+                        context_text = ctx.selected_text
+
+                # Use the actual agent method with browser context enabled
+                response = self.agent.process_user_question(
+                    question=request.prompt,
+                    context_text=context_text,
+                    use_browser_context=True,
+                    stream_callback=None
+                )
+
+                if response:
+                    return {"reply": response, "status": "success"}
+                else:
+                    return {"reply": "Failed to generate response", "status": "error"}
+
+            except Exception as e:
+                Logger.error(f"Chat error: {e}")
+                return {"reply": f"Error: {str(e)}", "status": "error"}
 
     def start(self):
         """Start the FastAPI server in a background thread"""

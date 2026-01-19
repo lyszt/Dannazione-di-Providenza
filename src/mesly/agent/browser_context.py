@@ -1,7 +1,7 @@
 import traceback
 from typing import List, Dict, Deque
 from collections import deque
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, FeatureNotFound
 
 from ..utils import Logger, HotkeyManager
 
@@ -14,7 +14,7 @@ class BrowserContext:
     def push(self, url: str, title: str, body: str) -> None:
         try:
             clean_body = BeautifulSoup(body, "lxml").get_text(strip=True)
-        except Exception:
+        except FeatureNotFound:
             Logger.error(traceback.format_exc())
             clean_body = BeautifulSoup(body, "html.parser").get_text(strip=True)
 

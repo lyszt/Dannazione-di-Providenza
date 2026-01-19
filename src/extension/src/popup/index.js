@@ -1,5 +1,6 @@
 import { LitElement, css, html } from 'lit';
 import config from '../config/index.js';
+import '../components/chat/index.js';
 
 /**
  * Dannazione di Providenza - Popup
@@ -13,6 +14,7 @@ export class DannazionePopup extends LitElement {
       overlayEnabled: { type: Boolean },
       fromLang: { type: String },
       toLang: { type: String },
+      activeTab: { type: String },
     };
   }
 
@@ -24,6 +26,7 @@ export class DannazionePopup extends LitElement {
     this.overlayEnabled = true;
     this.fromLang = 'auto';
     this.toLang = 'en';
+    this.activeTab = 'translate';
     this.languages = [
       { code: 'auto', name: 'Auto Detect' },
       { code: 'en', name: 'English' },
@@ -179,6 +182,10 @@ export class DannazionePopup extends LitElement {
     }
   }
 
+  switchTab(tab) {
+    this.activeTab = tab;
+  }
+
   render() {
     return html`
       <div class="popup-container">
@@ -186,65 +193,94 @@ export class DannazionePopup extends LitElement {
           <h1>Dannazione di Providenza</h1>
         </header>
 
-        <div class="settings-section">
-          <div class="setting-item">
-            <label>
-              <span>From Language</span>
-              <select class="lang-select" @change=${this.handleFromLangChange} .value=${this.fromLang}>
-                ${this.languages.map(lang => html`
-                  <option value=${lang.code} ?selected=${lang.code === this.fromLang}>
-                    ${lang.name}
-                  </option>
-                `)}
-              </select>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <label>
-              <span>To Language</span>
-              <select class="lang-select" @change=${this.handleToLangChange} .value=${this.toLang}>
-                ${this.languages.filter(l => l.code !== 'auto').map(lang => html`
-                  <option value=${lang.code} ?selected=${lang.code === this.toLang}>
-                    ${lang.name}
-                  </option>
-                `)}
-              </select>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <label>
-              <span>Auto-translate on selection</span>
-              <input
-                type="checkbox"
-                class="toggle"
-                ?checked=${this.overlayEnabled}
-                @change=${this.toggleOverlay}
-              />
-            </label>
-          </div>
+        <div class="tabs">
+          <button
+            class="tab ${this.activeTab === 'translate' ? 'active' : ''}"
+            @click=${() => this.switchTab('translate')}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z" fill="currentColor"/>
+            </svg>
+            Translate
+          </button>
+          <button
+            class="tab ${this.activeTab === 'chat' ? 'active' : ''}"
+            @click=${() => this.switchTab('chat')}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Chat
+          </button>
         </div>
 
-        <div class="popup-content">
-          ${this.selectedText
-            ? html`
-                <div class="text-section">
-                  <div class="text-block">
-                    <strong>Original:</strong>
-                    <p>${this.selectedText}</p>
-                  </div>
-
-                  <div class="text-block translation">
-                    <strong>Translation:</strong>
-                    ${this.isTranslating
-                      ? html`<p class="loading">Translating...</p>`
-                      : html`<p>${this.translatedText || 'No translation available'}</p>`}
-                  </div>
+        ${this.activeTab === 'translate'
+          ? html`
+              <div class="settings-section">
+                <div class="setting-item">
+                  <label>
+                    <span>From Language</span>
+                    <select class="lang-select" @change=${this.handleFromLangChange} .value=${this.fromLang}>
+                      ${this.languages.map(lang => html`
+                        <option value=${lang.code} ?selected=${lang.code === this.fromLang}>
+                          ${lang.name}
+                        </option>
+                      `)}
+                    </select>
+                  </label>
                 </div>
-              `
-            : html`<p class="hint">Select text on the page</p>`}
-        </div>
+
+                <div class="setting-item">
+                  <label>
+                    <span>To Language</span>
+                    <select class="lang-select" @change=${this.handleToLangChange} .value=${this.toLang}>
+                      ${this.languages.filter(l => l.code !== 'auto').map(lang => html`
+                        <option value=${lang.code} ?selected=${lang.code === this.toLang}>
+                          ${lang.name}
+                        </option>
+                      `)}
+                    </select>
+                  </label>
+                </div>
+
+                <div class="setting-item">
+                  <label>
+                    <span>Auto-translate on selection</span>
+                    <input
+                      type="checkbox"
+                      class="toggle"
+                      ?checked=${this.overlayEnabled}
+                      @change=${this.toggleOverlay}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div class="popup-content">
+                ${this.selectedText
+                  ? html`
+                      <div class="text-section">
+                        <div class="text-block">
+                          <strong>Original:</strong>
+                          <p>${this.selectedText}</p>
+                        </div>
+
+                        <div class="text-block translation">
+                          <strong>Translation:</strong>
+                          ${this.isTranslating
+                            ? html`<p class="loading">Translating...</p>`
+                            : html`<p>${this.translatedText || 'No translation available'}</p>`}
+                        </div>
+                      </div>
+                    `
+                  : html`<p class="hint">Select text on the page</p>`}
+              </div>
+            `
+          : html`
+              <div class="chat-tab-content">
+                <dannazione-chat></dannazione-chat>
+              </div>
+            `}
       </div>
     `;
   }
@@ -283,6 +319,50 @@ export class DannazionePopup extends LitElement {
         font-size: 18px;
         font-weight: 600;
         color: white;
+      }
+
+      .tabs {
+        display: flex;
+        background: #252525;
+        border-bottom: 1px solid #3a3a3a;
+      }
+
+      .tab {
+        flex: 1;
+        padding: 12px 16px;
+        border: none;
+        background: transparent;
+        color: #9ca3af;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
+        border-bottom: 2px solid transparent;
+      }
+
+      .tab:hover {
+        background: rgba(102, 126, 234, 0.05);
+        color: #e0e0e0;
+      }
+
+      .tab.active {
+        color: #667eea;
+        border-bottom-color: #667eea;
+        background: rgba(102, 126, 234, 0.1);
+      }
+
+      .tab svg {
+        flex-shrink: 0;
+      }
+
+      .chat-tab-content {
+        flex: 1;
+        height: 400px;
+        overflow: hidden;
       }
 
       .settings-section {

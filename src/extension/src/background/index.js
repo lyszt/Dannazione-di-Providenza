@@ -65,7 +65,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         })
       });
 
-      if (results && results[0]) {
+      if (results && results[0] && results[0].result) {
         await api.sendContext(results[0].result);
       }
     } catch (error) {
@@ -112,7 +112,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     })();
 
-    // Return true to indicate we'll send a response asynchronously
     return true;
   }
 
