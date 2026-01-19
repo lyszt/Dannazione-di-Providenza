@@ -12,7 +12,7 @@ from .models import (
     AIConfig,
     AIClient
 )
-from .prompts import LanguageTutorPrompts, get_tutor_prompt
+from .prompts import ProvidentiaPrompts, get_prompt
 
 __all__ = [
     "ConfigTemplate",
@@ -23,6 +23,6 @@ __all__ = [
     "OverlayConfig",
     "AIConfig",
     "AIClient",
-    "LanguageTutorPrompts",
-    "get_tutor_prompt"
+    "ProvidentiaPrompts",
+    "get_prompt"
 ]

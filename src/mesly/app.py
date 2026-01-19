@@ -12,7 +12,7 @@ from .config.config import ConfigTemplate
 from .utils import Logger, HotkeyManager
 from .capture import ScreenCapture
 from .window.main_window import MainWindow
-from .config.prompts import LanguageTutorPrompts
+from .config.prompts import ProvidentiaPrompts
 from .server.server import Server
 from .agent.agent import Agent
 

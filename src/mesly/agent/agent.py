@@ -8,7 +8,7 @@ from src.mesly.agent.memory.long_term import LongTermMemory
 from src.mesly.agent.self_identity import SelfIdentity
 from src.mesly.config import ConfigTemplate
 from src.mesly.config.gpuconfig import GPUConfig
-from src.mesly.config.prompts import LanguageTutorPrompts, get_tutor_prompt
+from src.mesly.config.prompts import ProvidentiaPrompts, get_prompt
 from src.mesly.llm import LLMClientManager, LocalLLMClientManager
 from src.mesly.utils import Logger
 
@@ -222,7 +222,7 @@ class Agent:
     def process_ocr_text(self, ocr_text: str, mode: str = "ocr",
                         system_prompt: Optional[str] = None, stream_callback=None) -> Optional[str]:
         """
-        Process OCR-extracted text with language tutoring
+        Process OCR-extracted text with intelligence analysis
 
         Args:
             ocr_text: Text extracted from OCR
@@ -240,12 +240,12 @@ class Agent:
         # Analyze sentiment to understand user's emotional state
         sentiment = self.analyze_sentiment(ocr_text)
 
-        # Use default language tutor system prompt if not provided
+        # Use default Providentia system prompt if not provided
         if system_prompt is None:
-            system_prompt = LanguageTutorPrompts.get_system_prompt()
+            system_prompt = ProvidentiaPrompts.get_system_prompt()
 
         # Build the user prompt based on mode
-        user_prompt = get_tutor_prompt(ocr_text, mode=mode)
+        user_prompt = get_prompt(ocr_text, mode=mode)
 
         Logger.info(f"Agent: Processing OCR text (mode={mode}, {len(ocr_text)} chars, sentiment={sentiment['label']})")
 
@@ -284,9 +284,9 @@ class Agent:
         # Analyze sentiment of question to gauge user's tone
         sentiment = self.analyze_sentiment(question)
 
-        # Use default language tutor system prompt if not provided
+        # Use default Providentia system prompt if not provided
         if system_prompt is None:
-            system_prompt = LanguageTutorPrompts.get_system_prompt()
+            system_prompt = ProvidentiaPrompts.get_system_prompt()
 
         # Build enriched prompt
         enriched_prompt = ""
@@ -348,9 +348,9 @@ class Agent:
         ocr_sentiment = self.analyze_sentiment(ocr_text)
         question_sentiment = self.analyze_sentiment(user_question)
 
-        # Use default language tutor system prompt if not provided
+        # Use default Providentia system prompt if not provided
         if system_prompt is None:
-            system_prompt = LanguageTutorPrompts.get_system_prompt()
+            system_prompt = ProvidentiaPrompts.get_system_prompt()
 
         # Build combined prompt
         combined_prompt = f"""This text was extracted from a screenshot:

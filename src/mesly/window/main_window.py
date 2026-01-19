@@ -10,7 +10,7 @@ from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from ..capture.stream_thread import ScreenShareThread
 from ..utils import Logger
-from ..config.prompts import LanguageTutorPrompts
+from ..config.prompts import ProvidentiaPrompts
 from ..config.config import ConfigTemplate
 
 try:
