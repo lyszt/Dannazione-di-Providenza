@@ -1,7 +1,11 @@
 from typing import Deque, Dict, Optional, Union
 import json
 from transformers import pipeline
+import io
+import numpy as np
+from scipy.io.wavfile import write
 
+from src.mesly import Logger
 from src.mesly.agent.browser_context import BrowserContext
 from src.mesly.agent.memory.short_term import ShortTermMemory
 from src.mesly.agent.memory.long_term import LongTermMemory
@@ -10,7 +14,12 @@ from src.mesly.config import ConfigTemplate
 from src.mesly.config.gpuconfig import GPUConfig
 from src.mesly.config.prompts import ProvidentiaPrompts, get_prompt
 from src.mesly.llm import LLMClientManager, LocalLLMClientManager
-from src.mesly.utils import Logger
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+from vendor.neutts.neutts import NeuTTS
 
 
 class KnowledgeBase:
@@ -37,6 +46,8 @@ class Agent:
         Args:
             config: Configuration template containing AI provider settings
         """
+        self.tts_ref_codes = None
+        self.tts_engine = NeuTTS()
         self.config = config
 
         # Initialize GPU configuration - check compatibility on boot
@@ -259,6 +270,50 @@ class Agent:
         })
 
         return self.generate(user_prompt, system_prompt, stream_callback)
+
+    def synthesize_audio(self, text: str) -> Optional[tuple[str, bytes]]:
+        """
+        Synthesize text to audio using NeuTTS.
+
+        Returns a tuple (mime_type, audio_bytes) or None on failure.
+        """
+        if not text:
+            return None
+
+        try:
+            ref_audio_path = ROOT / "assets" / "voice_ref.wav"
+
+            if not ref_audio_path.exists():
+                Logger.warning(f"Agent: Reference audio not found at {ref_audio_path}. Cannot synthesize.")
+                return None
+
+            if not hasattr(self, "tts_ref_codes") or self.tts_ref_codes is None:
+                Logger.info(f"Agent: Encoding reference audio from {ref_audio_path}")
+                self.tts_ref_codes = self.tts_engine.encode_reference(str(ref_audio_path))
+
+            ref_text = "The quick brown fox jumps over the lazy dog."
+            audio_array = self.tts_engine.infer(text, self.tts_ref_codes, ref_text)
+
+            if audio_array is None or len(audio_array) == 0:
+                Logger.warning("Agent: Audio synthesis returned empty waveform")
+                return None
+
+
+
+            # Convert float32 [-1, 1] to int16 PCM
+            audio_int16 = (audio_array * 32767).astype(np.int16)
+
+            byte_io = io.BytesIO()
+            # NeuTTS uses 24kHz sample rate
+            write(byte_io, 24000, audio_int16)
+            audio_bytes = byte_io.getvalue()
+
+            Logger.info("Agent: Audio synthesized successfully")
+            return "audio/wav", audio_bytes
+
+        except Exception as e:
+            Logger.error(f"Agent: Audio synthesis failed: {e}")
+            return None
 
     def process_user_question(self, question: str, context_text: Optional[str] = None,
                              system_prompt: Optional[str] = None,

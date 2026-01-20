@@ -37,6 +37,7 @@ uvicorn
 
 # Text to speech
 gtts
+pyttsx3
 
 # Translation Services
 deep-translator
@@ -62,3 +63,7 @@ loguru
 pytest
 pytest-cov
 lxml
+
+# Others
+scipy-stubs
+scipy

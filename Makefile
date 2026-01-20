@@ -1,0 +1,56 @@
+# Minimal Makefile for Mesly project
+# Targets:
+#   all             - installs pip requirements, initializes vendor submodules, and builds the extension
+#   venv            - create a local virtualenv in .venv and install requirements into it
+#   install-pip     - install pip requirements using system python
+#   vendor          - init/update git submodules (vendor) if present
+#   build-extension - run npm install and npm run build in src/extension
+#   clean           - remove common build artifacts
+
+PY ?= python3
+NPM ?= npm
+EXT_DIR = src/extension
+VENV_DIR = .venv
+
+.PHONY: all venv install-pip vendor build-extension clean
+
+all: install-pip vendor build-extension
+	@echo "All done. Extension built and python requirements installed."
+
+venv:
+	@echo "Creating virtualenv in $(VENV_DIR) (if it already exists this will reuse it)..."
+	$(PY) -m venv $(VENV_DIR)
+	@echo "Activating venv and installing requirements..."
+	. $(VENV_DIR)/bin/activate && python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+	@echo "Virtualenv setup complete. To activate: . $(VENV_DIR)/bin/activate"
+
+install-pip:
+	@echo "Installing pip requirements using $(PY)..."
+	$(PY) -m pip install --upgrade pip
+	$(PY) -m pip install -r requirements.txt
+	@echo "Pip requirements installed."
+
+vendor:
+	@echo "Initializing/updating git submodules (vendor)..."
+	@if [ -f .gitmodules ]; then \
+		git submodule update --init --recursive; \
+		echo "Git submodules initialized/updated."; \
+	else \
+		echo "No .gitmodules file found — nothing to do for vendor. If you expect vendor submodules, add them to .gitmodules."; \
+	fi
+
+build-extension:
+	@echo "Building browser extension in $(EXT_DIR)..."
+	@if [ -d $(EXT_DIR) ] && [ -f $(EXT_DIR)/package.json ]; then \
+		cd $(EXT_DIR) && $(NPM) install && { $(NPM) run build || $(NPM) run build --if-present; }; \
+		echo "Extension build finished."; \
+	else \
+		echo "Extension directory or package.json not found at $(EXT_DIR). Skipping build."; \
+	fi
+
+clean:
+	@echo "Cleaning common build artifacts..."
+	@rm -rf $(EXT_DIR)/dist || true
+	@rm -rf $(EXT_DIR)/build || true
+	@rm -rf build || true
+	@echo "Clean complete."

@@ -1,4 +1,6 @@
 import re
+import os
+import base64
 
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
@@ -234,7 +236,9 @@ class Server:
 
                 if response:
                     reply_text = trim_after_last_period(response)
-                    return {"reply": reply_text, "status": "success"}
+                    audio = self.agent.synthesize_audio(reply_text)
+                    resp = {"reply": reply_text, "status": "success"}
+                    return resp
                 else:
                     return {"reply": "Failed to generate response", "status": "error"}
 
