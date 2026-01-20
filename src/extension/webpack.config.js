@@ -37,6 +37,7 @@ module.exports = {
       patterns: [
         { from: 'popup.html', to: 'popup.html' },
         { from: 'public', to: '.' },
+        { from: 'src/styles', to: 'styles' },
         {
           from: 'src/manifest.template.json',
           to: 'manifest.json',
@@ -57,4 +58,3 @@ module.exports = {
 
   devtool: process.env.NODE_ENV === 'production' ? false : 'cheap-module-source-map',
 };
-

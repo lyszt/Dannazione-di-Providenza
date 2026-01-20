@@ -18,6 +18,7 @@ sentencepiece
 opencv-python
 Pillow
 numpy
+sacremoses
 peewee
 transformers
 

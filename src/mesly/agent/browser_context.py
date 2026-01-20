@@ -12,11 +12,7 @@ class BrowserContext:
         self.selected_text: str = ""
 
     def push(self, url: str, title: str, body: str) -> None:
-        try:
-            soup = BeautifulSoup(body, "lxml")
-        except FeatureNotFound:
-            Logger.error(traceback.format_exc())
-            soup = BeautifulSoup(body, "html.parser")
+        soup = BeautifulSoup(body, "lxml")
 
         # Remove script, style, and other non-readable elements
         for element in soup(['script', 'style', 'noscript', 'iframe', 'svg', 'path', 'nav', 'header', 'footer']):

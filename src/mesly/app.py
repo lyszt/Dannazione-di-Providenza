@@ -63,13 +63,13 @@ class MeslyApp:
 
         self.server = Server(
             host="127.0.0.1",
-            port=8000,
+            port=8263,
             agent=self.agent,
             config=self.config,
             screen_capture=self.screen_capture
         )
         self.server.start()
-        Logger.info("FastAPI server started on http://127.0.0.1:8000")
+        Logger.info("FastAPI server started on http://127.0.0.1:8263")
 
         # Cleanup on exit
         app.aboutToQuit.connect(self._cleanup)

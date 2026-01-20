@@ -62,14 +62,14 @@ class DannazioneAPI {
     }
   }
 
-  async sendChatMessage(prompt, body = {}) {
+  async sendChatMessage(prompt, page = {}) {
     try {
       const response = await fetch(`${this.base_url}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt, body }),
+        body: JSON.stringify({ prompt, page }),
       });
 
       if (!response.ok) {

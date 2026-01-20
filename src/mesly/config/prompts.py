@@ -50,71 +50,33 @@ Report: Language identification, English translation, and strategic relevance if
 Analysis required: Identify language, provide English translation, correct obvious scan errors. Concise intelligence brief."""
 
     # Quick translation (minimal explanation)
-    QUICK_TRANSLATION_PROMPT = """Foreign communication intercepted, Sire:
+    QUICK_TRANSLATION_PROMPT = (
+        "Quick translation: identify the source language and give a one-sentence English translation.\n\n{text}"
+    )
 
-    {text}
-
-    Immediate translation required:
-    - English equivalent
-    - Source language
-    - Pronunciation guide (non-English sources)"""
-
-    # Detailed analysis prompt
-    DETAILED_EXPLANATION_PROMPT = """Deep intelligence analysis requested, Your Imperial Majesty:
-
-    {text}
-
-    Full reconnaissance report:
-    1. **Translation**: Precise English rendering
-    2. **Linguistic Structure**: Grammar patterns and syntax breakdown
-    3. **Key Terminology**: Critical vocabulary analysis
-    4. **Phonetic Intelligence**: Pronunciation data (romanization)
-    5. **Contextual Assessment**: Usage patterns and strategic implications
-    6. **Cultural Intelligence**: Relevant background information
-
-    Source classification: Intercepted communication or surveillance data."""
+    # Detailed analysis prompt (kept concise but more thorough)
+    DETAILED_EXPLANATION_PROMPT = (
+        "Provide a concise explanation and useful learning notes for the text below. Include: a short translation, "
+        "one or two key grammar or vocabulary points, and a single example sentence demonstrating usage. Keep it brief.\n\n{text}"
+    )
 
     # Vocabulary extraction prompt
-    VOCABULARY_PROMPT = """Linguistic intelligence extraction required, Sire:
-
-    {text}
-
-    Compile vocabulary dossier:
-    - Target term (original language)
-    - Phonetic rendering
-    - English intelligence equivalent
-    - Classification (grammatical function)
-    - Operational usage examples
-
-Format: Structured intelligence brief for language analysis."""
+    VOCABULARY_PROMPT = (
+        "Extract useful vocabulary from the text. For each entry give: the original term, a short romanization/pronunciation, "
+        "a one-line English gloss, and a short example phrase if relevant. Keep the list compact.\n\n{text}"
+    )
 
     # Grammar analysis prompt
-    GRAMMAR_PROMPT = """Structural analysis of intercepted communication, Your Radiance:
-
-{text}
-
-Linguistic breakdown required:
-- Sentence architecture
-- Grammatical markers and particles
-- Verb morphology and conjugation patterns
-- Special linguistic constructions
-- Tactical application for field operatives
-
-Analysis level: Foundational intelligence training."""
+    GRAMMAR_PROMPT = (
+        "Give a short grammatical breakdown of the most important constructions in the text. Focus on two or three points, "
+        "with brief examples and one-sentence explanations.\n\n{text}"
+    )
 
     # Web content analysis prompt
-    CONTENT_ANALYSIS_PROMPT = """Web intelligence or communication intercept:
-
-{text}
-
-Strategic analysis:
-1. Content summary (translated intelligence)
-2. Tone assessment (formality/threat level)
-3. Source profiling (probable origin/speaker type)
-4. Cultural/contextual intelligence
-5. Strategic keywords for operational awareness
-
-Objective: Comprehensive situational awareness for the throne."""
+    CONTENT_ANALYSIS_PROMPT = (
+        "Briefly summarize the content, identify the language, and note any key vocabulary or tone features useful for a learner. "
+        "Keep it short and practical.\n\n{text}"
+    )
 
     @staticmethod
     def get_prompt(prompt_type: str, text: str) -> str:
@@ -150,7 +112,7 @@ Objective: Comprehensive situational awareness for the throne."""
 # Convenience function
 def get_prompt(text: str, mode: str = "translation") -> str:
     """
-    Get a Providentia prompt
+    Get a prompt for use by the agent
 
     Args:
         text: The text to analyze

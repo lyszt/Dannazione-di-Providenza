@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import fs from 'fs';
 import path from 'path';
+import tailwindcss from '@tailwindcss/vite'
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -72,6 +73,7 @@ export default defineConfig({
     }),
 
     generateManifest(),
+    tailwindcss(),
   ],
 
   build: {

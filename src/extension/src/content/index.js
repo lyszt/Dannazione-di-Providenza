@@ -183,13 +183,20 @@ function createChatOverlay() {
   chatOverlay.innerHTML = `
     <div class="dannazione-chat-header">
       <div class="chat-header-content">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>Chat Assistant</span>
+        <div class="message-avatar">
+        
+        </div>
+        <span>Providentia</span>
       </div>
-      <button class="dannazione-chat-close">×</button>
+      <div class="chat-header-actions">
+        <button class="dannazione-chat-clear" title="Clear conversation">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="dannazione-chat-close">×</button>
+      </div>
     </div>
     <div class="dannazione-chat-messages" id="dannazione-chat-messages">
       <div class="dannazione-chat-empty">
@@ -220,10 +227,12 @@ function createChatOverlay() {
 
   // Add event listeners
   const closeBtn = chatOverlay.querySelector('.dannazione-chat-close');
+  const clearBtn = chatOverlay.querySelector('.dannazione-chat-clear');
   const sendBtn = chatOverlay.querySelector('#dannazione-chat-send');
   const input = chatOverlay.querySelector('#dannazione-chat-input');
 
   closeBtn.addEventListener('click', toggleChat);
+  clearBtn.addEventListener('click', clearChat);
   sendBtn.addEventListener('click', () => sendChatMessage(input.value));
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -231,6 +240,26 @@ function createChatOverlay() {
       sendChatMessage(input.value);
     }
   });
+}
+
+function clearChat() {
+  const messagesContainer = chatOverlay.querySelector('#dannazione-chat-messages');
+
+  // Clear all messages
+  messagesContainer.innerHTML = `
+    <div class="dannazione-chat-empty">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p>Start a conversation</p>
+    </div>
+  `;
+
+  // Clear the chat messages array
+  chatMessages = [];
+
+  console.log('[Dannazione] Chat cleared');
 }
 
 function toggleChat() {
@@ -496,6 +525,32 @@ style.textContent = `
 
   .chat-header-content svg {
     color: #667eea;
+  }
+
+  .chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dannazione-chat-clear {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .dannazione-chat-clear:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
   }
 
   .dannazione-chat-close {

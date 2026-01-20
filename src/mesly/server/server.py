@@ -1,3 +1,4 @@
+from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
@@ -180,12 +181,38 @@ class Server:
                 if not self.agent.is_ready():
                     return {"reply": "AI client not available. Please check your configuration.", "status": "error"}
 
+                raw_html = None
+                page_obj = None
+                if isinstance(request.body, dict):
+                    page_obj = request.body.get('page')
+                    if isinstance(page_obj, dict):
+                        Logger.info(f"Server /chat: received page keys={list(page_obj.keys())}")
+                        try_html = page_obj.get('html') or page_obj.get('body')
+                        if try_html:
+                            Logger.info(f"Server /chat: page.url={page_obj.get('url')} html_length={len(try_html)}")
+                        raw_html = try_html
+                elif isinstance(request.body, (str, bytes)):
+                    raw_html = request.body
+
+                if raw_html:
+                    soup = BeautifulSoup(raw_html, 'lxml')
+
+
+                    raw_text = soup.get_text()
+                    # normalize whitespace and trim
+                    body_text = ' '.join(raw_text.split())
+                    Logger.info(f"Server /chat: parsed body_text length={len(body_text)} snippet={body_text[:200]}")
+                else:
+                    Logger.info("Server /chat: no inline HTML provided in request.body.page")
+                    body_text = ''
+
                 # Get context text from selected text if available
                 context_text = None
                 if hasattr(self.agent, 'knowledge_base') and hasattr(self.agent.knowledge_base, 'browser_context'):
                     ctx = self.agent.knowledge_base.browser_context
-                    if ctx.selected_text:
-                        context_text = ctx.selected_text
+                    context_text = f" USER IS VIEWING: {body_text} --- USER SELECTED TEXT: {ctx.selected_text if ctx.selected_text else ""}"
+                else:
+                    context_text = f" USER IS VIEWING: {body_text}"
 
                 # Use the actual agent method with browser context enabled
                 response = self.agent.process_user_question(

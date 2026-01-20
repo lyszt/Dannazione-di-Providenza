@@ -1,6 +1,8 @@
 import { LitElement, css, html } from 'lit';
 import config from '../config/index.js';
 import '../components/chat/index.js';
+import '@material/web/button/outlined-button.js';
+import '@material/web/checkbox/checkbox.js';
 
 /**
  * Dannazione di Providenza - Popup
@@ -188,7 +190,7 @@ export class DannazionePopup extends LitElement {
 
   render() {
     return html`
-      <div class="popup-container">
+      <div class="popup-container min-w-[400px] w-[450px] min-h-[500px] font-sans bg-gray-900 text-gray-100">
         <header class="popup-header">
           <h1>Dannazione di Providenza</h1>
         </header>
@@ -282,206 +284,6 @@ export class DannazionePopup extends LitElement {
               </div>
             `}
       </div>
-    `;
-  }
-
-  static get styles() {
-    return css`
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      :host {
-        display: block;
-        min-width: 400px;
-        width: 450px;
-        min-height: 500px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #1a1a1a;
-        color: #e0e0e0;
-      }
-
-      .popup-container {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        margin: 0;
-      }
-
-      .popup-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 16px;
-      }
-
-      .popup-header h1 {
-        font-size: 18px;
-        font-weight: 600;
-        color: white;
-      }
-
-      .tabs {
-        display: flex;
-        background: #252525;
-        border-bottom: 1px solid #3a3a3a;
-      }
-
-      .tab {
-        flex: 1;
-        padding: 12px 16px;
-        border: none;
-        background: transparent;
-        color: #9ca3af;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: all 0.2s;
-        border-bottom: 2px solid transparent;
-      }
-
-      .tab:hover {
-        background: rgba(102, 126, 234, 0.05);
-        color: #e0e0e0;
-      }
-
-      .tab.active {
-        color: #667eea;
-        border-bottom-color: #667eea;
-        background: rgba(102, 126, 234, 0.1);
-      }
-
-      .tab svg {
-        flex-shrink: 0;
-      }
-
-      .chat-tab-content {
-        flex: 1;
-        height: 400px;
-        overflow: hidden;
-      }
-
-      .settings-section {
-        background: #252525;
-        border-bottom: 1px solid #3a3a3a;
-      }
-
-      .setting-item {
-        padding: 12px 16px;
-      }
-
-      .setting-item label {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        cursor: pointer;
-        color: #e0e0e0;
-        font-size: 14px;
-      }
-
-      .toggle {
-        width: 40px;
-        height: 20px;
-        appearance: none;
-        background: #3a3a3a;
-        border-radius: 10px;
-        position: relative;
-        cursor: pointer;
-        transition: background 0.3s;
-      }
-
-      .toggle:checked {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      }
-
-      .toggle::before {
-        content: '';
-        position: absolute;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: white;
-        top: 2px;
-        left: 2px;
-        transition: left 0.3s;
-      }
-
-      .toggle:checked::before {
-        left: 22px;
-      }
-
-      .lang-select {
-        background: #3a3a3a;
-        color: #e0e0e0;
-        border: 1px solid #4a4a4a;
-        border-radius: 4px;
-        padding: 4px 8px;
-        font-size: 13px;
-        cursor: pointer;
-        outline: none;
-        transition: border-color 0.2s;
-      }
-
-      .lang-select:hover {
-        border-color: #667eea;
-      }
-
-      .lang-select:focus {
-        border-color: #667eea;
-      }
-
-      .popup-content {
-        flex: 1;
-        padding: 16px;
-        background: #2d2d2d;
-      }
-
-      .hint {
-        text-align: center;
-        color: #9ca3af;
-        margin-top: 40px;
-      }
-
-      .text-section {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
-
-      .text-block {
-        background: #3a3a3a;
-        padding: 12px;
-        border-radius: 6px;
-      }
-
-      .text-block.translation {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-        border: 1px solid rgba(102, 126, 234, 0.3);
-      }
-
-      .text-block strong {
-        display: block;
-        margin-bottom: 8px;
-        color: #9ca3af;
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-
-      .text-block p {
-        color: #d1d5db;
-        line-height: 1.6;
-        font-size: 14px;
-      }
-
-      .loading {
-        color: #667eea;
-        font-style: italic;
-      }
     `;
   }
 }
