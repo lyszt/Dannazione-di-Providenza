@@ -12,6 +12,20 @@ import time
 from collections import defaultdict
 
 
+def trim_after_last_period(s: str) -> str:
+    """Return the input trimmed to the last full sentence (through the final period).
+    If no period is found, return the original stripped string.
+    """
+    if s is None:
+        return s
+    if not isinstance(s, str):
+        s = str(s)
+    s = s.strip()
+    last_dot = s.rfind('.')
+    if last_dot == -1:
+        return s
+    return s[: last_dot + 1].strip()
+
 class TranslateRequest(BaseModel):
     text: str
     from_lang: str = "auto"
@@ -222,8 +236,11 @@ class Server:
                     stream_callback=None
                 )
 
+
+
                 if response:
-                    return {"reply": response, "status": "success"}
+                    reply_text = trim_after_last_period(response)
+                    return {"reply": reply_text, "status": "success"}
                 else:
                     return {"reply": "Failed to generate response", "status": "error"}
 
