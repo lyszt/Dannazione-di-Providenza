@@ -21,10 +21,14 @@ def trim_after_last_period(s: str) -> str:
     if not isinstance(s, str):
         s = str(s)
     s = s.strip()
-    last_dot = s.rfind('.')
-    if last_dot == -1:
-        return s
-    return s[: last_dot + 1].strip()
+    ending_chars = [s.rfind('.'), s.rfind('!'), s.rfind('?')]
+    for char in ending_chars:
+        if char == -1:
+            continue
+            last_dot = max(ending_chars)
+            return s[: last_dot + 1].strip()
+
+    return s
 
 class TranslateRequest(BaseModel):
     text: str
