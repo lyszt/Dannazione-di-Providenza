@@ -1,3 +1,5 @@
+import re
+
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -13,22 +15,10 @@ from collections import defaultdict
 
 
 def trim_after_last_period(s: str) -> str:
-    """Return the input trimmed to the last full sentence (through the final period).
-    If no period is found, return the original stripped string.
-    """
-    if s is None:
-        return s
-    if not isinstance(s, str):
-        s = str(s)
-    s = s.strip()
-    ending_chars = [s.rfind('.'), s.rfind('!'), s.rfind('?')]
-    for char in ending_chars:
-        if char == -1:
-            continue
-        last_dot = max(ending_chars)
-        return s[: last_dot + 1].strip()
+    if not s: return s
+    match = re.match(r'(.*[.!?])', s, re.DOTALL)
+    return match.group(1) if match else s
 
-    return s
 
 class TranslateRequest(BaseModel):
     text: str
