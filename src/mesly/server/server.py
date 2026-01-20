@@ -25,8 +25,8 @@ def trim_after_last_period(s: str) -> str:
     for char in ending_chars:
         if char == -1:
             continue
-            last_dot = max(ending_chars)
-            return s[: last_dot + 1].strip()
+        last_dot = max(ending_chars)
+        return s[: last_dot + 1].strip()
 
     return s
 
