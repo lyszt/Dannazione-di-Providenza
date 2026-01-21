@@ -80,7 +80,7 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     target: 'es2022',
-    sourcemap: isDev ? true : false,
+    sourcemap: isDev,
     minify: isDev ? false : 'terser',
 
     rollupOptions: {
