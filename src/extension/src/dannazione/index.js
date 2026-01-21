@@ -10,11 +10,10 @@ class DannazioneAPI {
 
   async sendContext(contextData) {
     try {
-      // Ensure the data structure matches the server's ContextRequest model
       const payload = {
         url: contextData.url,
         title: contextData.title,
-        html: contextData.html || contextData.body || '',
+        html: contextData.body || '',
         type: contextData.type || 'default'
       };
 
