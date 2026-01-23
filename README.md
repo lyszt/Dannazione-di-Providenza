@@ -123,7 +123,6 @@ The Dannazione architecture allows for security measures that go beyond traditio
 
 ### 5. Active Camouflage (Tracker Poisoning)
 * **Concept:** If you can't hide, create noise.
-* **Mechanism:** The extension autonomously visits random websites in a background headless process, clicking random links to poison the data profile built by advertising trackers.
 * **Goal:** Rendering the user's digital fingerprint useless to surveillance capitalism.
 * 
 ---
