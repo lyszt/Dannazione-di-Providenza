@@ -16,7 +16,6 @@
 [![forthebadge](/badges/powered-by-flux-capacitor.svg)](https://forthebadge.com)
 
 [![forthebadge](/badges/winter-is-coming.svg)](https://forthebadge.com)
-</div>
 
 ---
 
