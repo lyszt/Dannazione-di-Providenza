@@ -4,7 +4,7 @@ Configuration management for Mesly
 
 import yaml
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Dict
 
 from .models import (
     OCRConfig,

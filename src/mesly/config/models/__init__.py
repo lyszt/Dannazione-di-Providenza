@@ -7,7 +7,7 @@ from .translation_config import TranslationConfig
 from .capture_config import CaptureConfig, CaptureRegion
 from .overlay_config import OverlayConfig
 from .ai_config import AIConfig, AIClient
-from .local_llm_config import LocalLLMClient
+from .ai_config import LocalLLMClient
 
 __all__ = [
     "OCRConfig",

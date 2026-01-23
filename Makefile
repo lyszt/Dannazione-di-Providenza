@@ -12,6 +12,9 @@ NPM ?= npm
 EXT_DIR = src/extension
 VENV_DIR = .venv
 
+# List of vendored repositories to ensure present locally.
+VENDOR_REPOS ?= neutts:https://github.com/neuphonic/neutts
+
 .PHONY: all venv install-pip vendor build-extension clean
 
 all: install-pip vendor build-extension
@@ -36,8 +39,27 @@ vendor:
 		git submodule update --init --recursive; \
 		echo "Git submodules initialized/updated."; \
 	else \
-		echo "No .gitmodules file found — nothing to do for vendor. If you expect vendor submodules, add them to .gitmodules."; \
+		echo "No .gitmodules file found — nothing to do for vendor submodules."; \
 	fi
+	@echo "Ensuring vendored dependencies..."
+	@mkdir -p vendor
+	@for repo in $(VENDOR_REPOS); do \
+		name=$${repo%%:*}; \
+		url=$${repo#*:}; \
+		dest=vendor/$${name}; \
+		if [ -d $$dest ]; then \
+			echo "$$dest already exists — skipping clone."; \
+		else \
+			echo "Cloning $$name from $$url into $$dest..."; \
+			if git --version >/dev/null 2>&1; then \
+				git clone --depth 1 $$url $$dest || { echo "Failed to clone $$url into $$dest"; exit 1; }; \
+			else \
+				echo "git not found; cannot clone $$url automatically"; exit 1; \
+			fi; \
+		fi; \
+		if [ ! -f vendor/__init__.py ]; then printf "# vendor package\n" > vendor/__init__.py && echo "Created vendor/__init__.py"; fi; \
+		if [ -d $$dest ] && [ ! -f $$dest/__init__.py ]; then printf "# $$name package (vendored)\n" > $$dest/__init__.py && echo "Created $$dest/__init__.py"; fi; \
+	done
 
 build-extension:
 	@echo "Building browser extension in $(EXT_DIR)..."

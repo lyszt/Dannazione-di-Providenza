@@ -18,13 +18,6 @@ def main():
     """Main application entry point"""
     print(f"Mesly v{__version__}")
     print("OCR Language Learning Tool")
-
-    # TODO: Initialize application components
-    # - Screen capture
-    # - OCR engine
-    # - Translation service
-    # - Overlay window
-
     print("Application not yet implemented")
 
 
