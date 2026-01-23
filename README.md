@@ -11,10 +11,9 @@
 **LANGUAGE LEARNING • INTELLIGENCE • AGENTIC BROWSING PARTNER**
 
 *An autonomous intelligence system serving the Empire of Lygon*
-
-[![forthebadge](https://forthebadge.com/images/featured/featured-oooo-kill-em.svg)](https://forthebadge.com)
-[![forthebadge](https://forthebadge.com/images/featured/featured-powered-by-electricity.svg)](https://forthebadge.com)
-
+[![forthebadge](/badges/made-with-python.svg)](https://forthebadge.com)
+[![forthebadge](/badges/powered-by-flux-capacitor.svg)](https://forthebadge.com)
+[![forthebadge](/badges/winter-is-coming.svg)](https://forthebadge.com)
 </div>
 
 ---
