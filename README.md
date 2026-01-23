@@ -14,7 +14,7 @@
 
 ## What is this?
 
-**Dannazione di Provvidenza** is an AI-powered language learning assistant with OCR capabilities, translation services, and a Firefox browser extension. 
+**Dannazione di Provvidenza** is an AI-powered language learning assistant with OCR capabilities, translation services, and a Chromium browser extension. 
 > The AI assistant uses a dystopian military intelligence persona called "Providentia Magnata" for flavor. It helps add some character.
 
 ## Features
@@ -82,7 +82,7 @@ The project combines:
 - **Caching**: Stores translations to reduce API calls
 - **Modes**: Quick translation, detailed explanation, vocabulary extraction, grammar analysis
 
-### Browser Extension (Firefox)
+### Browser Extension (Chromium)
 - WebSocket connection to Python backend
 - Text selection capture for instant translation
 - Page context awareness (title, URL, content)
@@ -133,7 +133,7 @@ The Dannazione architecture allows for security measures that go beyond traditio
 - Python 3.14+
 - Node.js (latest LTS)
 - Tesseract OCR with language packs
-- Firefox 109+ (for extension)
+- Chromium-Based Browser (for extension)
 - Ollama (optional, for local LLMs)
 
 ### Setup
@@ -186,8 +186,8 @@ python main.py
 
 ### Load Extension
 
-1. Open `about:debugging` in Firefox
-2. Click "This Firefox" > "Load Temporary Add-on"
+1. Open `about:debugging` in Chromium
+2. Click "This Chromium" > "Load Temporary Add-on"
 3. Select `src/extension/manifest.json`
 
 ---
@@ -214,7 +214,7 @@ Dannazione-di-Provvidenza/
 │   │   ├── ocr/            # OCR engines
 │   │   ├── server/         # FastAPI backend
 │   │   └── ui/             # PyQt5 GUI
-│   └── extension/          # Firefox extension
+│   └── extension/          # Chromium extension
 ├── config/                 # Runtime config
 ├── vendor/                 # NeuTTS
 ├── scripts/                # Install scripts
