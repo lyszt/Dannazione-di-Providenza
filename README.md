@@ -105,19 +105,14 @@ The Dannazione architecture allows for security measures that go beyond traditio
 
 ### 1. Narrative Verification (Live Disinformation Defense)
 * **Concept:** Real-time cross-referencing of news articles against a trusted local vector database.
-* **Mechanism:** When a claim is detected in the DOM, the Agent runs a background RAG (Retrieval Augmented Generation) query. If the claim contradicts verified historical data or known facts, the text is highlighted in **Crimson** with a hovering "Reality Check" dossier.
 * **Goal:** A "Heads-Up Display" for truth in an era of post-truth media.
 
 ### 2. Synthetic Origin Detection (Anti-AI)
 * **Concept:** Defense against the "Dead Internet Theory."
-* **Mechanism:** Analyzing text perplexity and burstiness on social media comments and articles to identify non-human authors.
-* **Action:** Automatically tags or collapses content with a high probability of being LLM-generated bot spam.
 * **Goal:** Filter out the machine noise to find the remaining human signal.
 
 ### 3. Social Engineering Firewall (Scam Protection)
 * **Concept:** Detecting *persuasion* rather than just malware.
-* **Mechanism:** The Agent scans for linguistic patterns associated with urgency ("Act now!", "Your account is compromised") combined with input fields requesting sensitive data.
-* **Action:** If high-pressure tactics are detected on a non-whitelisted domain, Dannazione disables the input fields and overlays a "Psychological Threat Warning."
 * **Goal:** Preventing the user from falling for phishing sites that bypass standard URL filters.
 
 ### 4. Cognitive Filtering (Intelligent Ad-Blocking)
