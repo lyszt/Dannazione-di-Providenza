@@ -5,9 +5,12 @@
 ocr:
   engine: "easyocr"  # Options: easyocr, pytesseract, paddleocr
   languages:
-    - "ja"  # Japanese
-    - "ko"  # Korean
-    - "zh"  # Chinese
+    - "es"  # Spanish
+    - "pt"  # Portuguese
+    - "fr"  # French
+    - "it"  # Italian
+    - "ro"  # Romanian
+    - "de"  # German
   confidence_threshold: 0.5
 
 # Translation Settings
@@ -37,3 +40,33 @@ overlay:
 performance:
   use_gpu: false
   max_threads: 4
+
+# AI / LLM configuration matching src/mesly/config/models/ai_config.py
+ai:
+  # Preferred provider: gemini, ollama, llamacpp
+  preferred_provider: "ollama"
+
+  # Cloud AI clients (match AIConfig.__post_init__ defaults)
+  clients:
+    - provider: "gemini"
+      api_key: null
+      model: "gemini-2.5-flash-lite"
+      temperature: 0.7
+      max_tokens: 1024
+      enabled: false
+
+  # Local LLM clients
+  local_clients:
+    - provider: "ollama"
+      model: "phi3.5"
+      host: "http://localhost:11434"
+      temperature: 0.7
+      max_tokens: 2048
+      enabled: true
+
+    - provider: "llamacpp"
+      model: "llama2"
+      model_path: "/path/to/llama/model.bin"
+      temperature: 0.7
+      max_tokens: 2048
+      enabled: false
