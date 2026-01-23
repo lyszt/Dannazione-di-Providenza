@@ -25,23 +25,23 @@
 
 ## Features
 
-### 1. Sovereign Translation (Augmented Reality)
+### 1. Translation
 * **Engine:** Local **Helsinki-NLP (MarianMT)** models. No Google/DeepL API dependency.
 * **Mechanism:** Direct DOM injection. Wraps difficult words in `<ruby>` tags or injects Shadow DOM tooltips.
 * **Privacy:** Fully offline capable. Your reading habits never leave your machine.
 * **Context:** Translation is aware of the full paragraph structure (captured via DOM), not just isolated words.
 
-### 2. The "Context Engine" (RAG)
+### 2. Live DOM Content Reading while you browse
 * **Zero-Shot Awareness:** The agent knows exactly what you are looking at.
 * **Sliding Window Memory:** Uses a `deque(maxlen=3)` structure to hold the last 3 visited pages in short-term memory, allowing for intent analysis.
 * **Chat with Page:** Ask questions directly to the active tab: *"Is this news article biased?"* or *"Summarize the pricing table."*
 
-### 3. Telepathic Whisper (NeuTTS)
+### 3. Text-to-Speech technology
 * **Engine:** Local **NeuTTS** (Neural Text-to-Speech).
 * **Function:** Select text (or a person's name) and hear an instant audio briefing.
 * **Use Case:** Quick intelligence gathering without breaking visual focus.
 
-### 4. Cognitive Firewall
+### 4. Security uses
 * **Anti-Deception:** Scans the DOM for "Dark Patterns" (fake countdown timers, confusing unsubscribe buttons).
 * **Trust Score:** Assigns a heuristic rating to pages based on content integrity and logical consistency.
 * 
