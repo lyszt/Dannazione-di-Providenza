@@ -14,7 +14,8 @@
 
 ## What is this?
 
-**Dannazione di Providenza** is an AI-powered language learning assistant with OCR capabilities, translation services, and a Firefox browser extension. The AI assistant uses a dystopian military intelligence persona called "Providentia Magnata" for flavor.
+**Dannazione di Providenza** is an AI-powered language learning assistant with OCR capabilities, translation services, and a Firefox browser extension. 
+> The AI assistant uses a dystopian military intelligence persona called "Providentia Magnata" for flavor. It helps add some character.
 
 ## Features
 
