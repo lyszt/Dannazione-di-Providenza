@@ -67,3 +67,6 @@ Thumbs.db
 # Translation API Keys
 *.key
 credentials.json
+
+# Vendors
+vendor/*
