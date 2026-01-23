@@ -64,11 +64,15 @@ pytest
 pytest-cov
 lxml
 
-# Audio
-librosa
-
 
 # Others ( Not sure what it's used for)
 scipy-stubs
 scipy
+
+# Neutts
+librosa==0.11.0
+neucodec>=0.0.4
+phonemizer==3.3.0
+resemble-perth==1.0.1
+soundfile==0.13.1
 
