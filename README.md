@@ -8,7 +8,7 @@
 
 ![Providentia Magnata](https://cdn.pixabay.com/animation/2024/03/07/14/24/14-24-44-458_512.gif)
 
-**ORBITAL DEFENSE • INTELLIGENCE • MASS-DISRUPTION**
+**LANGUAGE LEARNING • INTELLIGENCE • AGENTIC BROWSING PARTNER**
 
 *An autonomous intelligence system serving the Empire of Lygon*
 
