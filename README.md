@@ -27,7 +27,7 @@
 
 ### 1. Translation
 * **Engine:** Local **Helsinki-NLP (MarianMT)** models. No Google/DeepL API dependency.
-* **Mechanism:** Direct DOM injection. Wraps difficult words in `<ruby>` tags or injects Shadow DOM tooltips.
+* **Mechanism:** Direct DOM injection. Injects Shadow DOM tooltips.
 * **Privacy:** Fully offline capable. Your reading habits never leave your machine.
 * **Context:** Translation is aware of the full paragraph structure (captured via DOM), not just isolated words.
 
