@@ -64,6 +64,7 @@ pytest
 pytest-cov
 lxml
 
-# Others
+# Others ( Not sure what it's used for)
 scipy-stubs
 scipy
+librosa
