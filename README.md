@@ -1,4 +1,4 @@
-# DANNAZIONE DI PROVIDENZA
+# DANNAZIONE DI PROVVIDENZA
 
 > *"Damnation of Providence"* — For when divine foresight becomes an instrument of control.
 
@@ -14,7 +14,7 @@
 
 ## What is this?
 
-**Dannazione di Providenza** is an AI-powered language learning assistant with OCR capabilities, translation services, and a Firefox browser extension. 
+**Dannazione di Provvidenza** is an AI-powered language learning assistant with OCR capabilities, translation services, and a Firefox browser extension. 
 > The AI assistant uses a dystopian military intelligence persona called "Providentia Magnata" for flavor. It helps add some character.
 
 ## Features
@@ -141,8 +141,8 @@ The Dannazione architecture allows for security measures that go beyond traditio
 
 ```bash
 # Clone
-git clone https://github.com/YOUR_USERNAME/Dannazione-di-Providenza.git
-cd Dannazione-di-Providenza
+git clone https://github.com/YOUR_USERNAME/Dannazione-di-Provvidenza.git
+cd Dannazione-di-Provvidenza
 
 # System dependencies (Arch Linux)
 ./scripts/install_deps.sh
@@ -206,7 +206,7 @@ python main.py
 ## Project Structure
 
 ```
-Dannazione-di-Providenza/
+Dannazione-di-Provvidenza/
 ├── src/
 │   ├── mesly/              # Python application
 │   │   ├── agent/          # AI agent + memory
