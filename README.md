@@ -4,18 +4,11 @@
 
 ---
 
-![Providentia Magnata](https://cdn.pixabay.com/animation/2024/03/07/14/24/14-24-44-458_512.gif)
+<img width="736" height="414" alt="image" src="https://github.com/user-attachments/assets/9600986f-47b9-41f8-979f-557508b6ede3" />
 
 **LANGUAGE LEARNING • INTELLIGENCE • AGENTIC BROWSING PARTNER**
 
 *An autonomous intelligence system serving the Empire of Lygon*
-
-
-[![forthebadge](/badges/made-with-python.svg)](https://forthebadge.com)
-
-[![forthebadge](/badges/powered-by-flux-capacitor.svg)](https://forthebadge.com)
-
-[![forthebadge](/badges/winter-is-coming.svg)](https://forthebadge.com)
 
 ---
 
