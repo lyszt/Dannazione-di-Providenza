@@ -1,6 +1,6 @@
 # DANNAZIONE DI PROVVIDENZA
 
-> *"Damnation of Providence"* — For when divine foresight becomes an instrument of control.
+> *"Damnation of Providence / Damn Providence"* — For when divine foresight becomes an instrument of control, and some may not like it.
 
 ---
 
