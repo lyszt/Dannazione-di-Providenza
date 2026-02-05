@@ -18,8 +18,8 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
-from vendor.neutts.neutts import NeuTTS
+sys.path.insert(0, str(ROOT / "vendor" / "neutts-air"))
+from neuttsair import NeuTTSAir
 
 
 class KnowledgeBase:
@@ -47,7 +47,10 @@ class Agent:
             config: Configuration template containing AI provider settings
         """
         self.tts_ref_codes = None
-        self.tts_engine = NeuTTS()
+        self.tts_engine = NeuTTSAir(
+            backbone_repo="neuphonic/neutts-air-q4-gguf",
+            codec_repo="neuphonic/neucodec",
+        )
         self.config = config
 
         # Initialize GPU configuration - check compatibility on boot
