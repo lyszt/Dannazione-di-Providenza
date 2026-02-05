@@ -17,7 +17,7 @@ from src.mesly.llm import LLMClientManager, LocalLLMClientManager
 from pathlib import Path
 import sys
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "vendor" / "neutts-air"))
 from neuttsair import NeuTTSAir
 
@@ -284,7 +284,7 @@ class Agent:
             return None
 
         try:
-            ref_audio_path = ROOT / "assets" / "voice_ref.wav"
+            ref_audio_path = ROOT / "src" / "assets" / "voice_ref.wav"
 
             if not ref_audio_path.exists():
                 Logger.warning(f"Agent: Reference audio not found at {ref_audio_path}. Cannot synthesize.")
