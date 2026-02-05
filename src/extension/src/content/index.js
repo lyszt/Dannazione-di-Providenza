@@ -4,6 +4,7 @@
 
 import DannazioneAPI from '../dannazione/index.js';
 import config from '../config/index.js';
+import { marked } from 'marked';
 
 const api = new DannazioneAPI(config.api.baseUrl);
 
@@ -338,7 +339,7 @@ async function sendChatMessage(message) {
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div class="message-content">${escapeHtml(responseText)}</div>
+      <div class="message-content markdown-body">${marked.parse(responseText)}</div>
     `;
   } catch (error) {
     console.error('[Dannazione] Failed to send chat message:', error);
@@ -790,6 +791,114 @@ style.textContent = `
   .dannazione-chat-send:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  /* Markdown rendering in bot messages */
+  .markdown-body p {
+    margin: 0 0 8px 0;
+  }
+
+  .markdown-body p:last-child {
+    margin-bottom: 0;
+  }
+
+  .markdown-body h1, .markdown-body h2, .markdown-body h3,
+  .markdown-body h4, .markdown-body h5, .markdown-body h6 {
+    margin: 12px 0 6px 0;
+    color: #e0e0e0;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .markdown-body h1 { font-size: 1.3em; }
+  .markdown-body h2 { font-size: 1.2em; }
+  .markdown-body h3 { font-size: 1.1em; }
+
+  .markdown-body ul, .markdown-body ol {
+    margin: 4px 0 8px 0;
+    padding-left: 20px;
+  }
+
+  .markdown-body li {
+    margin-bottom: 2px;
+  }
+
+  .markdown-body code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.9em;
+    color: #c4b5fd;
+  }
+
+  .markdown-body pre {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 6px 0;
+    overflow-x: auto;
+  }
+
+  .markdown-body pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.85em;
+    color: #d1d5db;
+  }
+
+  .markdown-body blockquote {
+    border-left: 3px solid #667eea;
+    margin: 6px 0;
+    padding: 4px 12px;
+    color: #9ca3af;
+    background: rgba(102, 126, 234, 0.08);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .markdown-body a {
+    color: #818cf8;
+    text-decoration: underline;
+  }
+
+  .markdown-body a:hover {
+    color: #a5b4fc;
+  }
+
+  .markdown-body strong {
+    color: #e0e0e0;
+    font-weight: 600;
+  }
+
+  .markdown-body em {
+    color: #c4b5fd;
+  }
+
+  .markdown-body hr {
+    border: none;
+    border-top: 1px solid rgba(102, 126, 234, 0.2);
+    margin: 10px 0;
+  }
+
+  .markdown-body table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 6px 0;
+    font-size: 0.9em;
+  }
+
+  .markdown-body th, .markdown-body td {
+    border: 1px solid rgba(74, 74, 74, 0.8);
+    padding: 6px 10px;
+    text-align: left;
+  }
+
+  .markdown-body th {
+    background: rgba(102, 126, 234, 0.15);
+    color: #e0e0e0;
+    font-weight: 600;
   }
 `;
 document.head.appendChild(style);

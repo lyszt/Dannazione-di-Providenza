@@ -236,8 +236,14 @@ class Server:
 
                 if response:
                     reply_text = trim_after_last_period(response)
-                    audio = self.agent.synthesize_audio(reply_text)
                     resp = {"reply": reply_text, "status": "success"}
+
+                    audio = self.agent.synthesize_audio(reply_text)
+                    if audio:
+                        mime_type, audio_bytes = audio
+                        resp["audio"] = base64.b64encode(audio_bytes).decode("utf-8")
+                        resp["audio_mime"] = mime_type
+
                     return resp
                 else:
                     return {"reply": "Failed to generate response", "status": "error"}

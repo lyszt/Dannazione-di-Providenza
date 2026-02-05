@@ -1,3 +1,7 @@
+# Trash
+node_modules
+# no official voice for providentia yet
+src/assets/voice_ref.wav
 # Python
 __pycache__/
 *.py[cod]
