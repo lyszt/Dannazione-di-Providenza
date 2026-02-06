@@ -1,9 +1,10 @@
-from typing import Deque, Dict, Optional, Union
+from typing import Callable, Deque, Dict, Optional, Union
 import json
 from transformers import pipeline
 import io
 import numpy as np
 from scipy.io.wavfile import write
+from concurrent.futures import ThreadPoolExecutor
 
 from src.mesly import Logger
 from src.mesly.agent.browser_context import BrowserContext
@@ -106,6 +107,9 @@ class Agent:
             model="distilbert-base-uncased-finetuned-sst-2-english",
             device=device_id
         )
+
+        # Thread pool for async audio synthesis
+        self._audio_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="audio_synth")
 
         # Initialize AI client based on preferred provider
         self._initialize_ai_client()
@@ -354,6 +358,24 @@ class Agent:
             Logger.error(f"Agent: Audio synthesis failed: {e}")
             return None
 
+    def synthesize_audio_async(self, text: str, callback: Callable[[Optional[tuple[str, bytes]]], None]) -> None:
+        """
+        Synthesize text to audio asynchronously using a background thread.
+
+        Args:
+            text: Text to synthesize
+            callback: Function called with (mime_type, audio_bytes) or None on completion
+        """
+        def _synth_task():
+            try:
+                result = self.synthesize_audio(text)
+                callback(result)
+            except Exception as e:
+                Logger.error(f"Agent: Async audio synthesis failed: {e}")
+                callback(None)
+
+        self._audio_executor.submit(_synth_task)
+
     def process_user_question(self, question: str, context_text: Optional[str] = None,
                              system_prompt: Optional[str] = None,
                              use_browser_context: bool = False,
@@ -500,6 +522,11 @@ class Agent:
 
     def close(self):
         """Close agent resources including long-term memory database connection"""
+        # Shutdown audio synthesis executor
+        if hasattr(self, '_audio_executor'):
+            self._audio_executor.shutdown(wait=True)
+            Logger.info("Agent: Audio executor shutdown")
+
         if self.long_term_memory:
             try:
                 self.long_term_memory.close()

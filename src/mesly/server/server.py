@@ -238,15 +238,17 @@ class Server:
                     reply_text = trim_after_last_period(response)
                     resp = {"reply": reply_text, "status": "success"}
 
-                    # Synthesize and play audio locally
-                    audio = self.agent.synthesize_audio(reply_text)
-                    if audio and self.window:
-                        mime_type, audio_bytes = audio
-                        # Save to temp file and play via window
-                        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                            f.write(audio_bytes)
-                            audio_path = f.name
-                        self.window.play_audio_signal.emit(audio_path)
+                    # Synthesize audio asynchronously - response returns immediately
+                    if self.window:
+                        def on_audio_ready(audio):
+                            if audio:
+                                mime_type, audio_bytes = audio
+                                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                                    f.write(audio_bytes)
+                                    audio_path = f.name
+                                self.window.play_audio_signal.emit(audio_path)
+
+                        self.agent.synthesize_audio_async(reply_text, on_audio_ready)
 
                     return resp
                 else:
