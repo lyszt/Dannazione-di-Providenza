@@ -8,6 +8,7 @@ from .capture_config import CaptureConfig, CaptureRegion
 from .overlay_config import OverlayConfig
 from .ai_config import AIConfig, AIClient
 from .ai_config import LocalLLMClient
+from .performance_config import PerformanceConfig
 
 __all__ = [
     "OCRConfig",
@@ -17,5 +18,6 @@ __all__ = [
     "OverlayConfig",
     "AIConfig",
     "AIClient",
-    "LocalLLMClient"
+    "LocalLLMClient",
+    "PerformanceConfig"
 ]

@@ -12,6 +12,7 @@ from .models import (
     CaptureConfig,
     CaptureRegion,
     OverlayConfig,
+    PerformanceConfig,
     AIConfig,
     AIClient,
     LocalLLMClient
@@ -29,7 +30,7 @@ class ConfigTemplate:
         Initialize configuration, loading from file or creating default
 
         Args:
-            filepath: Path to index file (default: index/index.yaml)
+            filepath: Path to config file (default: config/config.yaml)
         """
         self.filepath = Path(filepath)
 
@@ -38,6 +39,7 @@ class ConfigTemplate:
         self.translation = TranslationConfig()
         self.capture = CaptureConfig()
         self.overlay = OverlayConfig()
+        self.performance = PerformanceConfig()
         self.ai = AIConfig()
 
         # Load from file if exists, otherwise save defaults
@@ -74,6 +76,15 @@ class ConfigTemplate:
             region=CaptureRegion(**data.get("capture", {}).get("region", {}))
         )
         self.overlay = OverlayConfig(**data.get("overlay", {}))
+        perf_data = data.get("performance") or {}
+        self.performance = PerformanceConfig(
+            use_gpu=perf_data.get("use_gpu", False),
+            max_threads=perf_data.get("max_threads", 4),
+            min_ram_local_llm_gb=perf_data.get("min_ram_local_llm_gb", 4.0),
+            min_ram_neutts_gb=perf_data.get("min_ram_neutts_gb", 8.0),
+            max_swap_used_gb=perf_data.get("max_swap_used_gb", 6.0),
+            neutts_enabled=perf_data.get("neutts_enabled", True),
+        )
 
     def save(self) -> None:
         """Save configuration to file"""
@@ -87,6 +98,7 @@ class ConfigTemplate:
                 "region": self.capture.region.__dict__
             },
             "overlay": self.overlay.__dict__,
+            "performance": self.performance.__dict__,
             "ai": {
                 "clients": [client.__dict__ for client in self.ai.clients],
                 "local_clients": [client.__dict__ for client in self.ai.local_clients],
@@ -108,6 +120,7 @@ class ConfigTemplate:
                 "region": self.capture.region.__dict__
             },
             "overlay": self.overlay.__dict__,
+            "performance": self.performance.__dict__,
             "ai": {
                 "clients": [client.__dict__ for client in self.ai.clients],
                 "local_clients": [client.__dict__ for client in self.ai.local_clients],
@@ -123,7 +136,7 @@ class ConfigTemplate:
         Uses singleton pattern to ensure index is only loaded once per filepath
 
         Args:
-            filepath: Path to index file (default: index/index.yaml)
+            filepath: Path to config file (default: config/config.yaml)
 
         Returns:
             Ready-to-use ConfigTemplate instance

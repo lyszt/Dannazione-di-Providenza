@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer
 
 from .config.config import ConfigTemplate
+from .config.specs import SystemSpecs
 from .utils import Logger, HotkeyManager
 from .capture import ScreenCapture
 from .window.main_window import MainWindow
@@ -29,6 +30,10 @@ class MeslyApp:
         print("Initializing Mesly...")
         self.config = ConfigTemplate.get_config()
 
+        # Detect system specs for feature gating
+        self.specs = SystemSpecs()
+        Logger.info(f"System specs: {self.specs.get_specs_summary()}")
+
         # Setup hotkeys
         self.hotkey_manager = HotkeyManager()
         self.screen_capture = ScreenCapture()
@@ -47,7 +52,7 @@ class MeslyApp:
 
         # Initialize Agent with AI client
         Logger.info("Initializing Agent...")
-        self.agent = Agent(self.config)
+        self.agent = Agent(self.config, specs=self.specs)
 
         if not self.agent.is_ready():
             Logger.error(f"Agent not ready. Please check your config at config/config.yaml")
@@ -66,7 +71,8 @@ class MeslyApp:
             port=8263,
             agent=self.agent,
             config=self.config,
-            screen_capture=self.screen_capture
+            screen_capture=self.screen_capture,
+            window=self.window
         )
         self.server.start()
         Logger.info("FastAPI server started on http://127.0.0.1:8263")

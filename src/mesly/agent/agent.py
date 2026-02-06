@@ -10,7 +10,7 @@ from src.mesly.agent.browser_context import BrowserContext
 from src.mesly.agent.memory.short_term import ShortTermMemory
 from src.mesly.agent.memory.long_term import LongTermMemory
 from src.mesly.agent.self_identity import SelfIdentity
-from src.mesly.config import ConfigTemplate
+from src.mesly.config import ConfigTemplate, SystemSpecs
 from src.mesly.config.gpuconfig import GPUConfig
 from src.mesly.config.prompts import ProvidentiaPrompts, get_prompt
 from src.mesly.llm import LLMClientManager, LocalLLMClientManager
@@ -18,8 +18,6 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT / "vendor" / "neutts-air"))
-from neuttsair import NeuTTSAir
 
 
 class KnowledgeBase:
@@ -39,22 +37,52 @@ class KnowledgeBase:
 
 
 class Agent:
-    def __init__(self, config: ConfigTemplate):
+    def __init__(self, config: ConfigTemplate, specs: SystemSpecs = None):
         """
         Initialize Agent with AI client based on configuration
 
         Args:
             config: Configuration template containing AI provider settings
+            specs: Optional SystemSpecs for feature gating. Created internally if not provided.
         """
         self.tts_ref_codes = None
-        self.tts_engine = NeuTTSAir(
-            backbone_repo="neuphonic/neutts-air-q4-gguf",
-            codec_repo="neuphonic/neucodec",
-        )
+        self.tts_engine = None
         self.config = config
+        self.specs = specs if specs is not None else SystemSpecs()
 
         # Initialize GPU configuration - check compatibility on boot
-        self.gpu_config = GPUConfig()
+        self.gpu_config = self.specs.gpu_config
+
+        # Conditionally initialize NeuTTS based on config and specs
+        neutts_enabled = getattr(config.performance, "neutts_enabled", True)
+        min_ram = getattr(config.performance, "min_ram_neutts_gb", 8.0)
+        max_swap = getattr(config.performance, "max_swap_used_gb", 6.0)
+        if neutts_enabled and self.specs.supports_neutts(
+            min_ram_gb=min_ram, max_swap_used_gb=max_swap
+        ):
+            try:
+                sys.path.insert(0, str(ROOT / "vendor" / "neutts"))
+                from neutts import NeuTTS
+                self.tts_engine = NeuTTS(
+                    backbone_repo="neuphonic/neutts-nano-q8-gguf",
+                    backbone_device="cpu",
+                    codec_repo="neuphonic/neucodec",
+                    codec_device="cpu",
+                )
+                Logger.info("Agent: NeuTTS initialized")
+            except Exception as e:
+                Logger.warning(f"Agent: NeuTTS init failed ({e}), audio synthesis disabled")
+                self.tts_engine = None
+        else:
+            reason = []
+            if self.specs.ram_available_gb < min_ram:
+                reason.append(f"need {min_ram}GB available RAM (have {self.specs.ram_available_gb:.1f}GB)")
+            if self.specs.swap_used_gb > max_swap:
+                reason.append(f"swap pressure too high ({self.specs.swap_used_gb:.1f}GB used, max {max_swap}GB)")
+            path = self.specs._get_neutts_vendor_path()
+            if not path or not path.exists():
+                reason.append("vendor/neutts missing")
+            Logger.warning(f"Agent: NeuTTS disabled ({'; '.join(reason)})")
 
         self.knowledge_base = KnowledgeBase(config)
         self.profile = SelfIdentity()
@@ -100,17 +128,25 @@ class Agent:
                 self.ai_client = None
 
         elif preferred_provider in ["ollama", "llamacpp"]:
-            # Local LLM providers
-            try:
-                self.ai_client = LocalLLMClientManager(provider=preferred_provider, settings=self.config)
-                if self.ai_client.is_available():
-                    Logger.info(f"Agent: {preferred_provider.capitalize()} client initialized")
-                else:
-                    Logger.warning(f"Agent: {preferred_provider} client not available")
-                    self.ai_client = None
-            except Exception as e:
-                Logger.error(f"Agent: Failed to initialize {preferred_provider} client: {e}")
+            # Local LLM providers - check specs before init
+            min_ram = getattr(self.config.performance, "min_ram_local_llm_gb", 4.0)
+            if not self.specs.supports_local_llm(min_ram_gb=min_ram):
+                Logger.warning(
+                    f"Agent: Local LLM disabled (need {min_ram}GB available RAM, "
+                    f"have {self.specs.ram_available_gb:.1f}GB)"
+                )
                 self.ai_client = None
+            else:
+                try:
+                    self.ai_client = LocalLLMClientManager(provider=preferred_provider, settings=self.config)
+                    if self.ai_client.is_available():
+                        Logger.info(f"Agent: {preferred_provider.capitalize()} client initialized")
+                    else:
+                        Logger.warning(f"Agent: {preferred_provider} client not available")
+                        self.ai_client = None
+                except Exception as e:
+                    Logger.error(f"Agent: Failed to initialize {preferred_provider} client: {e}")
+                    self.ai_client = None
         else:
             Logger.error(f"Agent: Unknown provider '{preferred_provider}'")
             self.ai_client = None
@@ -280,7 +316,7 @@ class Agent:
 
         Returns a tuple (mime_type, audio_bytes) or None on failure.
         """
-        if not text:
+        if not text or self.tts_engine is None:
             return None
 
         try:

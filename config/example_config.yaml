@@ -1,5 +1,5 @@
 # Mesly Configuration Example
-# Copy this file to index.yaml and adjust settings
+# Copy this file to config.yaml and adjust settings
 
 # OCR Settings
 ocr:
@@ -40,6 +40,11 @@ overlay:
 performance:
   use_gpu: false
   max_threads: 4
+  # Specs-based feature gating (from crash analysis: swap pressure + low RAM = OOM)
+  min_ram_local_llm_gb: 4
+  min_ram_neutts_gb: 8
+  max_swap_used_gb: 6  # Disable NeuTTS when swap used > this (system under pressure)
+  neutts_enabled: true
 
 # AI / LLM configuration matching src/mesly/config/models/ai_config.py
 ai:

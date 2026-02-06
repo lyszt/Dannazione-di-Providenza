@@ -52,6 +52,7 @@ pygetwindow
 pyyaml
 python-dotenv
 requests
+psutil
 
 # Database (for caching translations/vocabulary)
 sqlalchemy

@@ -115,8 +115,13 @@ class AIGenerationThread(QThread):
 
 
 class MainWindow(QMainWindow):
+    # Signal for thread-safe audio playback from other threads
+    play_audio_signal = pyqtSignal(str)
+
     def __init__(self, agent):
         super().__init__()
+        # Connect audio signal to slot
+        self.play_audio_signal.connect(self._play_audio_file)
         self.setWindowTitle("Mesly - Fullscreen OCR")
         self.resize(500, 600)
 
@@ -503,4 +508,20 @@ class MainWindow(QMainWindow):
         }
         state_name = state_names.get(state, f"Unknown({state})")
         Logger.debug(f"Audio player state changed to: {state_name}")
+
+    def _play_audio_file(self, file_path: str):
+        """Play audio from a file path (thread-safe via signal)"""
+        try:
+            if not os.path.exists(file_path):
+                Logger.error(f"Audio file not found: {file_path}")
+                return
+
+            audio_path = os.path.abspath(file_path)
+            Logger.info(f"Playing audio from: {audio_path}")
+
+            self.audio_player.stop()
+            self.audio_player.setMedia(QMediaContent(QUrl.fromLocalFile(audio_path)))
+            self.audio_player.play()
+        except Exception as e:
+            Logger.error(f"Failed to play audio file: {e}")
 

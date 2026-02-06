@@ -1,6 +1,6 @@
 import re
 import os
-import base64
+import tempfile
 
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
@@ -45,12 +45,13 @@ class ContextRequest(BaseModel):
     type: str = "default"
 
 class Server:
-    def __init__(self, host="127.0.0.1", port=8000, agent=None, config=None, screen_capture=None):
+    def __init__(self, host="127.0.0.1", port=8000, agent=None, config=None, screen_capture=None, window=None):
         self.host = host
         self.port = port
         self.agent = agent
         self.config = config
         self.screen_capture = screen_capture
+        self.window = window
         self.app = FastAPI(title="Dannazione di Providenza API")
 
         self.app.add_middleware(
@@ -209,7 +210,6 @@ class Server:
 
 
                     raw_text = soup.get_text()
-                    # normalize whitespace and trim
                     body_text = ' '.join(raw_text.split())
                     Logger.info(f"Server /chat: parsed body_text length={len(body_text)} snippet={body_text[:200]}")
                 else:
@@ -238,11 +238,15 @@ class Server:
                     reply_text = trim_after_last_period(response)
                     resp = {"reply": reply_text, "status": "success"}
 
+                    # Synthesize and play audio locally
                     audio = self.agent.synthesize_audio(reply_text)
-                    if audio:
+                    if audio and self.window:
                         mime_type, audio_bytes = audio
-                        resp["audio"] = base64.b64encode(audio_bytes).decode("utf-8")
-                        resp["audio_mime"] = mime_type
+                        # Save to temp file and play via window
+                        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                            f.write(audio_bytes)
+                            audio_path = f.name
+                        self.window.play_audio_signal.emit(audio_path)
 
                     return resp
                 else:
