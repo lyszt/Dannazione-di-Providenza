@@ -44,7 +44,7 @@ performance:
   min_ram_local_llm_gb: 4
   min_ram_neutts_gb: 8
   max_swap_used_gb: 6  # Disable NeuTTS when swap used > this (system under pressure)
-  neutts_enabled: true
+  neutts_enabled: false
 
 # AI / LLM configuration matching src/mesly/config/models/ai_config.py
 ai:
