@@ -1,5 +1,6 @@
 # Trash
 node_modules
+.idea
 # no official voice for providentia yet
 src/assets/voice_ref.wav
 # Python
@@ -74,3 +75,5 @@ credentials.json
 
 # Vendors
 vendor/*
+# Long-term agent memory DB (do not track)
+src/mesly/agent/memory/long_term/agent_memory.db
